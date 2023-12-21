@@ -1,0 +1,25 @@
+{
+  "name": "goblin-chest",
+  "version": "0.0.1",
+  "description": "goblin-chest",
+  "author": "",
+  "license": "MIT",
+  "main": "lib/service.js",
+  "config": {
+    "xcraft": {
+      "commands": true
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "fs-extra": "^9.1.0",
+    "xcraft-core-goblin": "^5.12.1"
+  },
+  "devDependencies": {
+    "xcraft-dev-prettier": "^2.0.0",
+    "xcraft-dev-rules": "^4.2.4"
+  },
+  "prettier": "xcraft-dev-prettier"
+}
