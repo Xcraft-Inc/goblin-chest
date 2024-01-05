@@ -4,7 +4,7 @@
   "description": "goblin-chest",
   "author": "",
   "license": "MIT",
-  "main": "lib/service.js",
+  "main": "lib/chest.js",
   "config": {
     "xcraft": {
       "commands": true
