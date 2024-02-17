@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "fs-extra": "^9.1.0",
+    "goblin-chronomancer": "^0.1.0",
     "lodash": "^4.17.21",
     "sanitize-filename": "^1.6.3",
     "xcraft-core-goblin": "^5.12.1",
