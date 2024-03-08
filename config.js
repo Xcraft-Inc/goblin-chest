@@ -22,6 +22,13 @@ module.exports = [
   },
   {
     type: 'input',
+    name: 'fs.maxSize',
+    message:
+      'max size for the storage (no limit if 0, otherwise size in bytes)',
+    default: 0,
+  },
+  {
+    type: 'input',
     name: 'chronomancer.time',
     message: 'CRON time for database check',
     default: '0 */1 * * *',
