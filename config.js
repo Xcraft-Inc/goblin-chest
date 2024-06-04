@@ -33,4 +33,10 @@ module.exports = [
     message: 'CRON time for database check',
     default: '0 */1 * * *',
   },
+  {
+    type: 'input',
+    name: 'chronomancer.collect.time',
+    message: 'CRON time for trashed backend files to collect',
+    default: '42 3 * * *',
+  },
 ];
