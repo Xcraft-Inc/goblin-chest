@@ -29,7 +29,7 @@ module.exports = [
   },
   {
     type: 'input',
-    name: 'chronomancer.time',
+    name: 'chronomancer.missing.time',
     message: 'CRON time for database check',
     default: '0 */1 * * *',
   },
