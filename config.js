@@ -29,6 +29,12 @@ module.exports = [
   },
   {
     type: 'input',
+    name: 'fs.cipher',
+    message: 'default cipher to use for encryption',
+    default: 'aes-256-cbc',
+  },
+  {
+    type: 'input',
     name: 'chronomancer.missing.time',
     message: 'CRON time for database check',
     default: '0 */1 * * *',
