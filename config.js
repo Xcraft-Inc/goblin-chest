@@ -35,6 +35,12 @@ module.exports = [
   },
   {
     type: 'input',
+    name: 'fs.compress',
+    message: 'default compression to use for encryption',
+    default: 'gzip',
+  },
+  {
+    type: 'input',
     name: 'chronomancer.missing.time',
     message: 'CRON time for database check',
     default: '0 */1 * * *',
