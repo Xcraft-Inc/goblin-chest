@@ -41,6 +41,13 @@ module.exports = [
   },
   {
     type: 'input',
+    name: 'collect.orphans.maxSize',
+    message:
+      'max size of orphans to keep in the database / storage (collect without limit if 0)',
+    default: 0,
+  },
+  {
+    type: 'input',
     name: 'chronomancer.missing.time',
     message: 'CRON time for database check',
     default: '0 */1 * * *',
