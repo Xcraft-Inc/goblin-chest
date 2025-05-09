@@ -75,11 +75,11 @@ async storeFile(filePath) {
 // Dans une méthode d'un acteur Elf
 async storeFileFromStream(filePath) {
   const chest = new Chest(this);
-  
+
   // Créer un stream à partir du fichier
   const fs = require('fs');
   const xcraftStream = fs.createReadStream(filePath);
-  
+
   // Stocker le fichier dans le coffre avec un alias
   const chestObjectId = await chest.supply(
     xcraftStream,
@@ -90,7 +90,7 @@ async storeFileFromStream(filePath) {
     'documents',  // namespace
     'contract'    // alias
   );
-  
+
   return chestObjectId;
 }
 ```
@@ -103,7 +103,7 @@ const {Chest} = require('goblin-chest/lib/chest.js');
 // Dans une méthode d'un acteur Elf
 async retrieveFile(chestObjectId, outputPath) {
   const chest = new Chest(this);
-  
+
   // Récupérer le fichier du coffre et le sauvegarder
   await chest.saveAsTry(chestObjectId, outputPath);
 }
@@ -117,10 +117,10 @@ const {ChestObject} = require('goblin-chest/lib/chestObject.js');
 // Dans une méthode d'un acteur Elf
 async createAlias(chestObjectId, namespace, aliasName) {
   const feedId = await this.newQuestFeed();
-  
+
   const object = await new ChestObject(this).create(chestObjectId, feedId);
   const aliasId = await object.setAlias(namespace, aliasName);
-  
+
   return aliasId;
 }
 ```
@@ -133,10 +133,10 @@ const {Chest} = require('goblin-chest/lib/chest.js');
 // Dans une méthode d'un acteur Elf
 async listDocuments(namespace, depth = 1) {
   const chest = new Chest(this);
-  
+
   // Récupérer tous les alias dans un namespace spécifique
   const aliasGroups = await chest.getAliasIdsFromNamespace(namespace, depth);
-  
+
   // Traiter les résultats
   return aliasGroups.map(group => {
     // Le premier élément de chaque groupe est la version la plus récente
@@ -147,11 +147,11 @@ async listDocuments(namespace, depth = 1) {
 
 ## Interactions avec d'autres modules
 
-- **goblin-chronomancer** : Utilisé pour planifier des tâches périodiques comme la vérification des fichiers manquants et la collecte des fichiers orphelins
-- **xcraft-core-goblin** : Fournit l'infrastructure Elf pour les acteurs et la gestion des états
-- **xcraft-core-stones** : Utilisé pour la définition des types de données et la validation
-- **xcraft-core-utils** : Fournit des utilitaires pour les fichiers, les verrous et les checksums
-- **xcraft-core-etc** : Gère la configuration du module
+- [**goblin-chronomancer**][1] : Utilisé pour planifier des tâches périodiques comme la vérification des fichiers manquants et la collecte des fichiers orphelins
+- [**xcraft-core-goblin**][2] : Fournit l'infrastructure Elf pour les acteurs et la gestion des états
+- [**xcraft-core-stones**][3] : Utilisé pour la définition des types de données et la validation
+- [**xcraft-core-utils**][4] : Fournit des utilitaires pour les fichiers, les verrous et les checksums
+- [**xcraft-core-etc**][5] : Gère la configuration du module
 
 ## Configuration avancée
 
@@ -171,12 +171,14 @@ async listDocuments(namespace, depth = 1) {
 Ce fichier définit l'acteur principal `Chest` qui orchestre toutes les opérations de stockage et de récupération. Il initialise le backend approprié et expose les méthodes principales comme `supply`, `retrieve`, `trash`, etc.
 
 L'acteur `Chest` est un singleton qui gère :
+
 - L'initialisation du backend de stockage configuré
 - La synchronisation des fichiers entre clients et serveur
 - La gestion des fichiers orphelins via des tâches planifiées
 - La vérification périodique des fichiers manquants
 
 Les méthodes principales incluent :
+
 - `supply` : Stocke un fichier dans le coffre
 - `retrieve` : Récupère un fichier du coffre
 - `location` et `locationTry` : Obtient l'emplacement physique d'un fichier
@@ -188,6 +190,7 @@ Les méthodes principales incluent :
 Ce fichier définit l'acteur `ChestObject` qui représente un fichier stocké dans le coffre. Il gère les métadonnées du fichier et son cycle de vie.
 
 L'état d'un `ChestObject` comprend :
+
 - `id` : ID unique basé sur le hash du fichier
 - `name` : Nom du fichier
 - `ext` : Extension du fichier (déduite du nom ou du type MIME)
@@ -203,6 +206,7 @@ L'état d'un `ChestObject` comprend :
 Ce fichier définit l'acteur `ChestAlias` qui permet de référencer un `ChestObject` via un alias nommé dans un namespace. Cela permet d'avoir des noms conviviaux et organisés pour les fichiers.
 
 L'état d'un `ChestAlias` comprend :
+
 - `id` : ID unique au format `chestAlias@<namespace>@<chestObjectId>`
 - `name` : Nom de l'alias
 - `meta.status` : État de l'alias ('published' ou 'trashed')
@@ -210,6 +214,7 @@ L'état d'un `ChestAlias` comprend :
 ### `backend/fs.js`
 
 Ce fichier implémente le backend de stockage basé sur le système de fichiers. Il gère :
+
 - Le stockage physique des fichiers dans une structure organisée
 - Le chiffrement et le déchiffrement des fichiers
 - La compression et la décompression
@@ -217,4 +222,10 @@ Ce fichier implémente le backend de stockage basé sur le système de fichiers.
 
 Le backend utilise une structure de répertoires basée sur les deux premiers caractères du hash SHA-256 des fichiers pour un accès efficace. Il implémente également un système de rotation des fichiers basé sur leur date d'accès pour respecter les limites de taille configurées.
 
-*Cette documentation est une mise à jour.*
+_Cette documentation est une mise à jour._
+
+[1]: https://github.com/Xcraft-Inc/goblin-chronomancer
+[2]: https://github.com/Xcraft-Inc/xcraft-core-goblin
+[3]: https://github.com/Xcraft-Inc/xcraft-core-stones
+[4]: https://github.com/Xcraft-Inc/xcraft-core-utils
+[5]: https://github.com/Xcraft-Inc/xcraft-core-etc
