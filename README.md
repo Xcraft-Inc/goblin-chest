@@ -62,6 +62,19 @@ const {Chest} = require('goblin-chest/lib/chest.js');
 // Dans une méthode d'un acteur Elf
 async storeFile(filePath) {
   const chest = new Chest(this);
+
+  // Stocker le fichier dans le coffre
+  const chestObjectId = await chest.supply(
+    filePath,
+    'myFileName'
+  );
+
+  return chestObjectId;
+}
+
+// Dans une méthode d'un acteur Elf
+async storeFileFromStream(filePath) {
+  const chest = new Chest(this);
   
   // Créer un stream à partir du fichier
   const fs = require('fs');
