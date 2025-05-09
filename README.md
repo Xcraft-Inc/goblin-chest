@@ -222,7 +222,7 @@ Ce fichier implémente le backend de stockage basé sur le système de fichiers.
 
 Le backend utilise une structure de répertoires basée sur les deux premiers caractères du hash SHA-256 des fichiers pour un accès efficace. Il implémente également un système de rotation des fichiers basé sur leur date d'accès pour respecter les limites de taille configurées.
 
-_Cette documentation est une mise à jour._
+_Cette documentation a été mise à jour automatiquement._
 
 [1]: https://github.com/Xcraft-Inc/goblin-chronomancer
 [2]: https://github.com/Xcraft-Inc/xcraft-core-goblin
