@@ -147,11 +147,11 @@ async listDocuments(namespace, depth = 1) {
 
 ## Interactions avec d'autres modules
 
-- [**goblin-chronomancer**][1] : Utilisé pour planifier des tâches périodiques comme la vérification des fichiers manquants et la collecte des fichiers orphelins
-- [**xcraft-core-goblin**][2] : Fournit l'infrastructure Elf pour les acteurs et la gestion des états
-- [**xcraft-core-stones**][3] : Utilisé pour la définition des types de données et la validation
-- [**xcraft-core-utils**][4] : Fournit des utilitaires pour les fichiers, les verrous et les checksums
-- [**xcraft-core-etc**][5] : Gère la configuration du module
+- **[goblin-chronomancer]** : Utilisé pour planifier des tâches périodiques comme la vérification des fichiers manquants et la collecte des fichiers orphelins
+- **[xcraft-core-goblin]** : Fournit l'infrastructure Elf pour les acteurs et la gestion des états
+- **[xcraft-core-stones]** : Utilisé pour la définition des types de données et la validation
+- **[xcraft-core-utils]** : Fournit des utilitaires pour les fichiers, les verrous et les checksums
+- **[xcraft-core-etc]** : Gère la configuration du module
 
 ## Configuration avancée
 
@@ -224,8 +224,8 @@ Le backend utilise une structure de répertoires basée sur les deux premiers ca
 
 _Cette documentation a été mise à jour automatiquement._
 
-[1]: https://github.com/Xcraft-Inc/goblin-chronomancer
-[2]: https://github.com/Xcraft-Inc/xcraft-core-goblin
-[3]: https://github.com/Xcraft-Inc/xcraft-core-stones
-[4]: https://github.com/Xcraft-Inc/xcraft-core-utils
-[5]: https://github.com/Xcraft-Inc/xcraft-core-etc
+[goblin-chronomancer]: https://github.com/Xcraft-Inc/goblin-chronomancer
+[xcraft-core-goblin]: https://github.com/Xcraft-Inc/xcraft-core-goblin
+[xcraft-core-stones]: https://github.com/Xcraft-Inc/xcraft-core-stones
+[xcraft-core-utils]: https://github.com/Xcraft-Inc/xcraft-core-utils
+[xcraft-core-etc]: https://github.com/Xcraft-Inc/xcraft-core-etc
