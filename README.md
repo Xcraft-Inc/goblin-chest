@@ -155,14 +155,16 @@ async listDocuments(namespace, depth = 1) {
 
 ## Configuration avancée
 
-- **backend** : Le backend à utiliser pour le stockage (par défaut : `fs`)
-- **fs.location** : L'emplacement pour stocker les fichiers
-- **fs.maxSize** : Taille maximale pour le stockage (0 = pas de limite)
-- **fs.cipher** : Algorithme de chiffrement par défaut (aes-256-cbc)
-- **fs.compress** : Algorithme de compression par défaut (gzip)
-- **collect.orphans.maxSize** : Taille maximale des orphelins à conserver
-- **chronomancer.missing.time** : Planification CRON pour la vérification des fichiers manquants
-- **chronomancer.collect.time** : Planification CRON pour la collecte des fichiers à la corbeille
+| Option | Description | Type | Valeur par défaut |
+|--------|-------------|------|------------------|
+| `backend` | Backend pour le stockage | string | `fs` |
+| `fs.location` | Emplacement pour stocker les fichiers | string | `null` |
+| `fs.maxSize` | Taille maximale pour le stockage (0 = pas de limite) | number | `0` |
+| `fs.cipher` | Algorithme de chiffrement par défaut | string | `aes-256-cbc` |
+| `fs.compress` | Algorithme de compression par défaut | string | `gzip` |
+| `collect.orphans.maxSize` | Taille maximale des orphelins à conserver | number | `0` |
+| `chronomancer.missing.time` | Planification CRON pour la vérification des fichiers manquants | string | `0 */1 * * *` |
+| `chronomancer.collect.time` | Planification CRON pour la collecte des fichiers à la corbeille | string | `42 3 * * *` |
 
 ## Détails des sources
 
@@ -177,39 +179,109 @@ L'acteur `Chest` est un singleton qui gère :
 - La gestion des fichiers orphelins via des tâches planifiées
 - La vérification périodique des fichiers manquants
 
-Les méthodes principales incluent :
+#### État et modèle de données
 
-- `supply` : Stocke un fichier dans le coffre
-- `retrieve` : Récupère un fichier du coffre
-- `location` et `locationTry` : Obtient l'emplacement physique d'un fichier
-- `trash` et `unlink` : Gère le cycle de vie des fichiers
-- `getAliasIdsFromNamespace` : Recherche des alias par namespace
+```javascript
+class ChestShape {
+  id = string;
+}
+
+class ChestState extends Elf.Sculpt(ChestShape) {}
+```
+
+#### Méthodes publiques
+
+- **`init(options)`** - Initialise le coffre avec les options spécifiées. Peut être configuré en mode réplica.
+- **`setReplica(enable)`** - Active ou désactive le mode réplica, qui modifie le comportement de stockage.
+- **`supply(xcraftStream, fileName, streamId, chestObjectId, cert, namespace, alias)`** - Stocke un fichier dans le coffre et retourne son ID ou un alias.
+- **`retrieve(chestObjectId, key)`** - Récupère un fichier du coffre en utilisant son ID.
+- **`location(chestObjectId)`** - Obtient l'emplacement physique d'un fichier.
+- **`locationTry(chestObjectId)`** - Tente d'obtenir l'emplacement d'un fichier, en le récupérant du serveur si nécessaire.
+- **`saveAsTry(chestObjectId, outputFile, privateKey)`** - Sauvegarde un fichier du coffre vers un emplacement spécifié.
+- **`setVectors(chestObjectId, vectors)`** - Définit des vecteurs pour un objet (utilisé pour la recherche).
+- **`trashAlias(chestAliasId)`** - Met un alias à la corbeille.
+- **`trash(chestObjectId)`** - Met un fichier à la corbeille.
+- **`unlink(chestObjectId)`** - Dissocie un fichier (garde l'entrée dans la base de données mais permet de supprimer le fichier physique).
+- **`checkMissing(chestObjectId)`** - Vérifie si un fichier est manquant et demande sa récupération si nécessaire.
+- **`getObjectIdFromName(name)`** - Récupère l'ID d'un objet à partir de son nom.
+- **`getObjectIdHistoryFromName(name, limit)`** - Récupère l'historique des versions d'un objet à partir de son nom.
+- **`getAliasIdsFromNamespace(namespace, depth)`** - Récupère les alias dans un namespace spécifique.
 
 ### `chestObject.js`
 
 Ce fichier définit l'acteur `ChestObject` qui représente un fichier stocké dans le coffre. Il gère les métadonnées du fichier et son cycle de vie.
 
-L'état d'un `ChestObject` comprend :
+#### État et modèle de données
 
-- `id` : ID unique basé sur le hash du fichier
-- `name` : Nom du fichier
-- `ext` : Extension du fichier (déduite du nom ou du type MIME)
-- `size` : Taille du fichier en octets
-- `mime` et `charset` : Type MIME et jeu de caractères
-- `encryption` : Informations sur le chiffrement (si utilisé)
-- `link` : État de liaison ('linked' ou 'unlinked')
-- `generation` : Numéro de version pour le versionnement
-- `metadata` : Métadonnées optionnelles (titre, auteurs, etc.)
+```javascript
+class ChestObjectShape {
+  id = id('chestObject');
+  meta = MetaShape;
+  name = string;
+  ext = option(string);
+  size = number;
+  mime = string;
+  charset = string;
+  encryption = option(EncryptionShape);
+  link = enumeration(
+    'linked',
+    'unlinked'
+  );
+  generation = number;
+  metadata = option(MetadataShape);
+}
+```
+
+Les métadonnées optionnelles peuvent inclure :
+
+```javascript
+class MetadataShape {
+  title = option(string);
+  subject = option(string);
+  description = option(string);
+  languages = option(array(string));
+  createDate = option(dateTime);
+  modifyDate = option(dateTime);
+  authors = option(array(string));
+  contributors = option(array(string));
+  version = option(string);
+}
+```
+
+#### Méthodes publiques
+
+- **`create(id, desktopId, filePath)`** - Crée un nouvel objet dans le coffre.
+- **`upsert(size, mime, charset, cipher, compress, key)`** - Met à jour les informations d'un objet.
+- **`setMetadata(metadata)`** - Définit des métadonnées pour un objet.
+- **`setAlias(namespace, name)`** - Crée un alias pour un objet.
+- **`setVectors(vectors)`** - Définit des vecteurs pour un objet.
+- **`unlink()`** - Dissocie un objet.
+- **`trash()`** - Met un objet à la corbeille.
 
 ### `chestAlias.js`
 
 Ce fichier définit l'acteur `ChestAlias` qui permet de référencer un `ChestObject` via un alias nommé dans un namespace. Cela permet d'avoir des noms conviviaux et organisés pour les fichiers.
 
-L'état d'un `ChestAlias` comprend :
+#### État et modèle de données
 
-- `id` : ID unique au format `chestAlias@<namespace>@<chestObjectId>`
-- `name` : Nom de l'alias
-- `meta.status` : État de l'alias ('published' ou 'trashed')
+```javascript
+class ChestAliasShape {
+  id = string;
+  meta = MetaShape;
+  name = string;
+}
+
+class MetaShape {
+  index = string;
+  status = enumeration('published', 'trashed');
+}
+```
+
+#### Méthodes publiques
+
+- **`create(id, desktopId, name)`** - Crée un nouvel alias.
+- **`upsert(name)`** - Met à jour un alias.
+- **`trash()`** - Met un alias à la corbeille.
 
 ### `backend/fs.js`
 
@@ -219,6 +291,17 @@ Ce fichier implémente le backend de stockage basé sur le système de fichiers.
 - Le chiffrement et le déchiffrement des fichiers
 - La compression et la décompression
 - La gestion de l'espace de stockage avec des limites configurables
+
+La classe `SHFS` (Secure Hash File System) fournit les méthodes suivantes :
+
+- **`setMaxSize(maxSize)`** - Définit la taille maximale du stockage.
+- **`location(hash)`** - Obtient l'emplacement physique d'un fichier à partir de son hash.
+- **`getWriteStream()`** - Crée un stream d'écriture pour un nouveau fichier.
+- **`put(streamFS, cert)`** - Stocke un fichier dans le backend.
+- **`del(hash)`** - Supprime un fichier du backend.
+- **`get(hash, encryption, key)`** - Récupère un fichier du backend.
+- **`exists(hash)`** - Vérifie si un fichier existe dans le backend.
+- **`list()`** - Liste tous les fichiers dans le backend.
 
 Le backend utilise une structure de répertoires basée sur les deux premiers caractères du hash SHA-256 des fichiers pour un accès efficace. Il implémente également un système de rotation des fichiers basé sur leur date d'accès pour respecter les limites de taille configurées.
 
