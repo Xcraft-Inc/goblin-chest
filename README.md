@@ -153,19 +153,11 @@ async listDocuments(namespace, depth = 1) {
 
 Le module utilise la configuration Xcraft standard via `xcraft-core-etc` et ne définit pas de variables d'environnement spécifiques.
 
-## Détails des sources
+## Détails des acteurs
 
-### `chest.js`
+### Acteur Chest (Singleton)
 
-Ce fichier définit l'acteur principal `Chest` qui orchestre toutes les opérations de stockage et de récupération. Il initialise le backend approprié et expose les méthodes principales comme `supply`, `retrieve`, `trash`, etc.
-
-L'acteur `Chest` est un singleton (`Elf.Alone`) qui gère :
-
-- L'initialisation du backend de stockage configuré
-- La synchronisation des fichiers entre clients et serveur
-- La gestion des fichiers orphelins via des tâches planifiées
-- La vérification périodique des fichiers manquants
-- Le mode réplica pour les clients
+L'acteur principal `Chest` est un singleton (`Elf.Alone`) qui orchestre toutes les opérations de stockage et de récupération.
 
 #### État et modèle de données
 
@@ -173,47 +165,41 @@ L'acteur `Chest` est un singleton (`Elf.Alone`) qui gère :
 class ChestShape {
   id = string;
 }
-
-class ChestState extends Elf.Sculpt(ChestShape) {}
 ```
 
 L'état du coffre est minimal car il s'agit principalement d'un orchestrateur.
 
-#### Méthodes publiques
+#### Cycle de vie
 
-**`init(options)`** - Initialise le coffre avec les options spécifiées. Configure le backend, détermine si on est côté client ou serveur, et configure les tâches de synchronisation.
+- **`init(options)`** : Initialise le coffre avec les options spécifiées. Configure le backend, détermine si on est côté client ou serveur, et configure les tâches de synchronisation.
 
-**`setReplica(enable)`** - Active ou désactive le mode réplica, qui modifie le comportement de stockage et les tâches planifiées.
+#### Méthodes principales
 
-**`supply(xcraftStream, fileName, streamId, chestObjectId, cert, namespace, alias)`** - Stocke un fichier dans le coffre. Retourne l'ID du ChestObject ou du ChestAlias si un namespace est spécifié.
+**Gestion des fichiers :**
+- `supply(xcraftStream, fileName, streamId, chestObjectId, cert, namespace, alias)` - Stocke un fichier dans le coffre
+- `retrieve(chestObjectId, key)` - Récupère un fichier du coffre
+- `location(chestObjectId)` - Obtient l'emplacement physique d'un fichier
+- `locationTry(chestObjectId)` - Tente d'obtenir l'emplacement avec synchronisation automatique
+- `saveAsTry(chestObjectId, outputFile, privateKey)` - Sauvegarde un fichier vers le système de fichiers
 
-**`retrieve(chestObjectId, key)`** - Récupère un fichier du coffre en utilisant son ID. Retourne un objet avec le stream, la clé de routage et le nom du fichier.
+**Gestion du cycle de vie :**
+- `trash(chestObjectId)` - Met un fichier à la corbeille
+- `unlink(chestObjectId)` - Dissocie un fichier
+- `trashAlias(chestAliasId)` - Met un alias à la corbeille
 
-**`location(chestObjectId)`** - Obtient l'emplacement physique d'un fichier dans le backend.
+**Recherche et navigation :**
+- `getObjectIdFromName(name)` - Récupère l'ID de la dernière version d'un fichier par nom
+- `getObjectIdHistoryFromName(name, limit)` - Récupère l'historique des versions
+- `getAliasIdsFromNamespace(namespace, depth)` - Liste les alias dans un namespace
 
-**`locationTry(chestObjectId)`** - Tente d'obtenir l'emplacement d'un fichier, en le récupérant du serveur si nécessaire. Implémente la logique de synchronisation client-serveur.
+**Fonctionnalités avancées :**
+- `setVectors(chestObjectId, vectors)` - Définit des vecteurs pour la recherche vectorielle
+- `setReplica(enable)` - Active/désactive le mode réplica
+- `checkMissing(chestObjectId)` - Vérifie et demande la récupération de fichiers manquants
 
-**`saveAsTry(chestObjectId, outputFile, privateKey)`** - Sauvegarde un fichier du coffre vers un emplacement spécifié sur le système de fichiers.
+### Acteur ChestObject
 
-**`setVectors(chestObjectId, vectors)`** - Définit des vecteurs pour un objet (utilisé pour la recherche vectorielle).
-
-**`trashAlias(chestAliasId)`** - Met un alias à la corbeille.
-
-**`trash(chestObjectId)`** - Met un fichier à la corbeille et supprime le fichier physique du backend.
-
-**`unlink(chestObjectId)`** - Dissocie un fichier (garde l'entrée dans la base de données mais supprime le fichier physique).
-
-**`checkMissing(chestObjectId)`** - Vérifie si un fichier est manquant et émet un événement pour demander sa récupération.
-
-**`getObjectIdFromName(name)`** - Récupère l'ID de l'objet avec la génération la plus élevée pour un nom donné.
-
-**`getObjectIdHistoryFromName(name, limit)`** - Récupère l'historique des versions d'un objet à partir de son nom, limité à un nombre spécifié.
-
-**`getAliasIdsFromNamespace(namespace, depth)`** - Récupère les alias dans un namespace spécifique, groupés par nom avec un historique de profondeur configurable.
-
-### `chestObject.js`
-
-Ce fichier définit l'acteur `ChestObject` qui représente un fichier stocké dans le coffre. Il gère les métadonnées du fichier et son cycle de vie.
+Représente un fichier individuel stocké dans le coffre avec ses métadonnées complètes.
 
 #### État et modèle de données
 
@@ -233,21 +219,26 @@ class ChestObjectShape {
 }
 ```
 
-Les métadonnées incluent :
-
+**Métadonnées système :**
 ```javascript
 class MetaShape {
   index = string;
-  vectors = option(record(string, array(number)));
+  vectors = option(record(string, array(number))); // Pour la recherche vectorielle
   status = enumeration('published', 'trashed');
 }
+```
 
+**Chiffrement :**
+```javascript
 class EncryptionShape {
   cipher = enumeration('aes-256-cbc');
   compress = enumeration('gzip');
   key = string; // Clé symétrique + IV chiffrées avec la clé publique
 }
+```
 
+**Métadonnées documentaires :**
+```javascript
 class MetadataShape {
   title = option(string);
   subject = option(string);
@@ -261,90 +252,96 @@ class MetadataShape {
 }
 ```
 
-#### Méthodes publiques
+#### Cycle de vie
 
-**`create(id, desktopId, filePath)`** - Crée un nouvel objet dans le coffre. Le filePath est nettoyé pour extraire uniquement le nom du fichier.
+- **`create(id, desktopId, filePath)`** : Crée un nouvel objet dans le coffre
 
-**`upsert(size, mime, charset, cipher, compress, key)`** - Met à jour les informations d'un objet avec les métadonnées du fichier et incrémente automatiquement la génération.
+#### Méthodes principales
 
-**`setMetadata(metadata)`** - Définit des métadonnées optionnelles pour un objet (titre, auteurs, etc.).
+- `upsert(size, mime, charset, cipher, compress, key)` - Met à jour les informations avec incrémentation automatique de génération
+- `setMetadata(metadata)` - Définit des métadonnées documentaires
+- `setAlias(namespace, name)` - Crée un alias pour l'objet
+- `setVectors(vectors)` - Définit des vecteurs pour la recherche
+- `unlink()` - Dissocie l'objet (garde l'entrée DB, supprime le fichier physique)
+- `trash()` - Met l'objet à la corbeille et supprime tous les alias associés
 
-**`setAlias(namespace, name)`** - Crée un alias pour un objet dans un namespace spécifique.
+### Acteur ChestAlias
 
-**`setVectors(vectors)`** - Définit des vecteurs pour un objet (utilisé pour la recherche vectorielle).
-
-**`unlink()`** - Dissocie un objet (marque le lien comme 'unlinked').
-
-**`trash()`** - Met un objet à la corbeille et supprime automatiquement tous les alias associés.
-
-### `chestAlias.js`
-
-Ce fichier définit l'acteur `ChestAlias` qui permet de référencer un `ChestObject` via un alias nommé dans un namespace. Cela permet d'avoir des noms conviviaux et organisés pour les fichiers.
+Permet de référencer un `ChestObject` via un alias nommé dans un namespace organisé.
 
 #### État et modèle de données
 
 ```javascript
 class ChestAliasShape {
-  id = string;
+  id = string; // Format: chestAlias@{namespace}@{chestObjectId}
   meta = MetaShape;
   name = string;
 }
-
-class MetaShape {
-  index = string;
-  status = enumeration('published', 'trashed');
-}
 ```
 
-L'ID d'un alias suit le format : `chestAlias@{namespace}@{chestObjectId}`
+#### Cycle de vie
 
-#### Méthodes publiques
-
-**`create(id, desktopId, name)`** - Crée un nouvel alias. Le nom est obligatoire lors de la création.
-
-**`upsert(name)`** - Met à jour un alias avec un nouveau nom et remet le statut à 'published'.
-
-**`trash()`** - Met un alias à la corbeille.
-
-### `backend/fs.js`
-
-Ce fichier implémente le backend de stockage basé sur le système de fichiers. Il gère le stockage physique des fichiers dans une structure organisée avec chiffrement et compression.
-
-La classe `SHFS` (Secure Hash File System) utilise :
-
-- Une structure de répertoires basée sur les deux premiers caractères du hash SHA-256
-- Un système d'index en mémoire pour la gestion efficace des fichiers
-- Un mécanisme de rotation basé sur l'heure d'accès (atime) pour respecter les limites de taille
-- Le chiffrement AES avec des clés générées aléatoirement
-- La compression GZIP optionnelle
+- **`create(id, desktopId, name)`** : Crée un nouvel alias (nom obligatoire)
 
 #### Méthodes principales
 
-**`constructor(config)`** - Initialise le backend avec la configuration spécifiée, crée les répertoires nécessaires et construit l'index.
+- `upsert(name)` - Met à jour l'alias avec un nouveau nom
+- `trash()` - Met l'alias à la corbeille
 
-**`setMaxSize(maxSize)`** - Définit la taille maximale du stockage et déclenche la rotation si nécessaire.
+## Backend de stockage
 
-**`location(hash)`** - Calcule l'emplacement physique d'un fichier à partir de son hash.
+### Backend FileSystem (SHFS)
 
-**`getWriteStream()`** - Crée un stream d'écriture temporaire pour un nouveau fichier.
+Le backend par défaut implémente un système de fichiers sécurisé avec hash (`SHFS` - Secure Hash File System).
 
-**`put(streamFS, cert)`** - Stocke un fichier dans le backend, avec chiffrement optionnel si un certificat est fourni.
+#### Caractéristiques
 
-**`get(hash, encryption, key)`** - Récupère un fichier du backend, avec déchiffrement optionnel.
+- **Structure organisée** : Répertoires basés sur les 2 premiers caractères du hash SHA-256
+- **Index en mémoire** : Gestion efficace avec tri par heure d'accès (atime)
+- **Rotation automatique** : Suppression des fichiers les plus anciens selon la limite de taille
+- **Chiffrement AES-256-CBC** : Avec clés générées aléatoirement
+- **Compression GZIP** : Optionnelle pour réduire l'espace de stockage
 
-**`exists(hash)`** - Vérifie si un fichier existe dans le backend.
+#### Méthodes principales
 
-**`del(hash)`** - Supprime un fichier du backend et met à jour l'index.
+- `put(streamFS, cert)` - Stocke un fichier avec chiffrement optionnel
+- `get(hash, encryption, key)` - Récupère un fichier avec déchiffrement optionnel
+- `exists(hash)` - Vérifie l'existence d'un fichier
+- `del(hash)` - Supprime un fichier et met à jour l'index
+- `location(hash)` - Calcule l'emplacement physique
+- `setMaxSize(maxSize)` - Configure la limite de taille avec rotation automatique
 
-**`list()`** - Générateur qui liste tous les hash des fichiers dans le backend.
+## Tests
 
-### `test/chestObject.spec.js`
+Le module inclut des tests unitaires pour valider le comportement des acteurs :
 
-Ce fichier contient les tests unitaires pour la logique du `ChestObject`. Il teste les opérations de base comme la création, la mise à jour, la dissociation et la mise à la corbeille des objets.
+```javascript
+// Exemple de test pour ChestObject
+const objectLogic = Elf.trial(ChestObjectLogic);
+objectLogic.create('chestObject@test', '/home/yeti/foobar.obj');
+objectLogic.upsert(42, 'image/png', 'binary', 'aes-256-cbc', 'gzip', 'key', 1);
+```
 
 Les tests utilisent `Elf.trial()` pour tester la logique sans persistance, permettant de valider le comportement des mutations d'état.
 
-_Cette documentation a été mise à jour automatiquement._
+## Sécurité et performance
+
+### Sécurité
+
+- **Chiffrement hybride** : Combinaison de chiffrement symétrique (AES) et asymétrique (RSA)
+- **Clés uniques** : Génération de clés et IV aléatoires pour chaque fichier
+- **Isolation des données** : Structure de hash empêchant la prédiction des emplacements
+- **Gestion sécurisée des clés** : Les clés symétriques sont chiffrées avec des clés publiques
+
+### Performance
+
+- **Déduplication automatique** : Les fichiers identiques (même hash) ne sont stockés qu'une fois
+- **Index en mémoire** : Accès rapide aux métadonnées des fichiers
+- **Streaming** : Traitement des fichiers par flux pour gérer de gros volumes
+- **Compression** : Réduction de l'espace de stockage avec GZIP
+- **Rotation intelligente** : Suppression des fichiers les moins récemment utilisés
+
+_Cette documentation a été générée automatiquement à partir du code source._
 
 [goblin-chronomancer]: https://github.com/Xcraft-Inc/goblin-chronomancer
 [xcraft-core-goblin]: https://github.com/Xcraft-Inc/xcraft-core-goblin
