@@ -6,11 +6,13 @@ Le module `goblin-chest` est un système de stockage de fichiers avancé pour l'
 
 ## Structure du module
 
-Le module s'articule autour de trois acteurs Elf principaux :
+Le module s'articule autour de cinq acteurs Elf principaux :
 
 1. **Chest** - L'acteur principal singleton qui orchestre le stockage et la récupération des fichiers
 2. **ChestObject** - Représente un fichier individuel stocké dans le coffre avec ses métadonnées
 3. **ChestAlias** - Permet de créer des références nommées vers des ChestObjects dans des espaces de noms spécifiques
+4. **Gold** - Gère les fichiers avec un cycle de vie simplifié et des alias automatiques
+5. **GoldWarden** - Surveille le système de fichiers pour synchroniser automatiquement les fichiers Gold
 
 Le module utilise un système de backend configurable pour le stockage physique des fichiers, avec une implémentation par défaut basée sur le système de fichiers (`fs`).
 
@@ -108,6 +110,19 @@ async retrieveFile(chestObjectId, outputPath) {
 }
 ```
 
+### Utiliser Gold pour la gestion simplifiée
+
+```javascript
+// Dans une méthode d'un acteur Elf
+async updateGoldFile(goldId, filePath) {
+  const feedId = await this.newQuestFeed();
+  const gold = await new Gold(this).create(goldId, feedId);
+  
+  // Met à jour le fichier Gold (crée un nouvel alias si le fichier a changé)
+  await gold.provide(filePath);
+}
+```
+
 ### Rechercher des fichiers par namespace
 
 ```javascript
@@ -148,10 +163,11 @@ async listDocuments(namespace, depth = 1) {
 | `collect.orphans.maxSize` | Taille maximale des orphelins à conserver | number | `0` |
 | `chronomancer.missing.time` | Planification CRON pour la vérification des fichiers manquants | string | `0 */1 * * *` |
 | `chronomancer.collect.time` | Planification CRON pour la collecte des fichiers à la corbeille | string | `42 3 * * *` |
+| `gold.namespaces` | Espaces de noms supportés pour le Gold Warden | array | `[]` |
 
 ### Variables d'environnement
 
-Le module utilise la configuration Xcraft standard via `xcraft-core-etc` et ne définit pas de variables d'environnement spécifiques.
+Le module utilise la configuration Xcraft standard via `xcraft-core-etc` et ne définit pas de variables d'environnement spécifiques. Le GoldWarden est activé uniquement en mode développement (`NODE_ENV === 'development'`).
 
 ## Détails des acteurs
 
@@ -288,6 +304,67 @@ class ChestAliasShape {
 - `upsert(name)` - Met à jour l'alias avec un nouveau nom
 - `trash()` - Met l'alias à la corbeille
 
+### Acteur Gold
+
+L'acteur `Gold` fournit une interface simplifiée pour gérer des fichiers avec un cycle de vie automatisé et des alias intégrés.
+
+#### État et modèle de données
+
+```javascript
+class GoldShape {
+  id = id('gold');
+  chestAliasId = option(id('chestAlias'));
+  meta = MetaShape;
+}
+```
+
+#### Cycle de vie
+
+- **`create(id, desktopId)`** : Crée un nouvel acteur Gold
+
+#### Méthodes principales
+
+- `provide(file)` - Met à jour le fichier associé (crée automatiquement un alias si le fichier change)
+- `retrieve()` - Récupère l'emplacement du fichier associé
+- `trash()` - Met le Gold et son alias associé à la corbeille
+
+#### Fonctionnement
+
+L'acteur Gold simplifie la gestion des fichiers en :
+- Créant automatiquement des alias dans un namespace basé sur l'ID du Gold
+- Vérifiant si le fichier a changé avant de créer une nouvelle version
+- Gérant automatiquement le cycle de vie des alias associés
+
+### Acteur GoldWarden (Singleton)
+
+Le `GoldWarden` est un singleton qui surveille le système de fichiers pour synchroniser automatiquement les fichiers Gold.
+
+#### État et modèle de données
+
+```javascript
+class GoldWardenShape {
+  id = string;
+}
+```
+
+#### Cycle de vie
+
+- **`init()`** : Initialise la surveillance du système de fichiers (uniquement en mode développement)
+
+#### Fonctionnement
+
+Le GoldWarden :
+- Surveille le répertoire `share` du projet en mode développement
+- Détecte automatiquement les ajouts, modifications et suppressions de fichiers
+- Crée/met à jour automatiquement les acteurs Gold correspondants
+- Filtre les fichiers selon les namespaces configurés
+- Génère des IDs Gold basés sur la structure de répertoires
+
+#### Méthodes privées
+
+- `_update(goldId, file)` - Met à jour un fichier Gold détecté
+- `_trash(golds)` - Met à la corbeille les Gold des fichiers supprimés
+
 ## Backend de stockage
 
 ### Backend FileSystem (SHFS)
@@ -311,6 +388,14 @@ Le backend par défaut implémente un système de fichiers sécurisé avec hash 
 - `location(hash)` - Calcule l'emplacement physique
 - `setMaxSize(maxSize)` - Configure la limite de taille avec rotation automatique
 
+#### Chiffrement et déchiffrement
+
+Le backend gère le chiffrement hybride :
+- Génération d'une clé AES et d'un IV aléatoires
+- Chiffrement du fichier avec AES-256-CBC
+- Chiffrement de la clé AES + IV avec la clé publique RSA (OAEP padding)
+- Stockage de la clé chiffrée en base64 dans les métadonnées
+
 ## Tests
 
 Le module inclut des tests unitaires pour valider le comportement des acteurs :
@@ -332,6 +417,7 @@ Les tests utilisent `Elf.trial()` pour tester la logique sans persistance, perme
 - **Clés uniques** : Génération de clés et IV aléatoires pour chaque fichier
 - **Isolation des données** : Structure de hash empêchant la prédiction des emplacements
 - **Gestion sécurisée des clés** : Les clés symétriques sont chiffrées avec des clés publiques
+- **Sanitisation des noms** : Nettoyage automatique des noms de fichiers pour éviter les attaques de traversée de répertoires
 
 ### Performance
 
@@ -340,6 +426,30 @@ Les tests utilisent `Elf.trial()` pour tester la logique sans persistance, perme
 - **Streaming** : Traitement des fichiers par flux pour gérer de gros volumes
 - **Compression** : Réduction de l'espace de stockage avec GZIP
 - **Rotation intelligente** : Suppression des fichiers les moins récemment utilisés
+- **Surveillance temps réel** : Le GoldWarden utilise `chokidar` pour une surveillance efficace du système de fichiers
+
+## Architecture et patterns
+
+### Pattern Actor Model
+
+Le module suit le pattern Actor Model d'Xcraft avec :
+- **Isolation des états** : Chaque acteur gère son propre état
+- **Communication par messages** : Les acteurs communiquent via des quêtes
+- **Persistance automatique** : Les états sont automatiquement persistés dans la base de données
+
+### Pattern Repository
+
+Le Chest agit comme un repository centralisé pour :
+- **Abstraction du stockage** : Interface unifiée indépendante du backend
+- **Gestion des métadonnées** : Centralisation des informations sur les fichiers
+- **Orchestration** : Coordination entre les différents acteurs
+
+### Pattern Observer
+
+Le GoldWarden implémente le pattern Observer pour :
+- **Surveillance passive** : Réaction aux changements du système de fichiers
+- **Synchronisation automatique** : Mise à jour transparente des acteurs Gold
+- **Découplage** : Séparation entre la détection des changements et leur traitement
 
 _Cette documentation a été générée automatiquement à partir du code source._
 
