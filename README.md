@@ -114,12 +114,12 @@ async retrieveFile(chestObjectId, outputPath) {
 
 ```javascript
 // Dans une méthode d'un acteur Elf
-async updateGoldFile(goldId, filePath) {
+async updateGoldFile(goldId, data) {
   const feedId = await this.newQuestFeed();
   const gold = await new Gold(this).create(goldId, feedId);
-  
-  // Met à jour le fichier Gold (crée un nouvel alias si le fichier a changé)
-  await gold.provide(filePath);
+
+  // Met à jour le contenu Gold (crée un nouvel alias si le contenu a changé)
+  await gold.update(data);
 }
 ```
 
@@ -153,17 +153,17 @@ async listDocuments(namespace, depth = 1) {
 
 ## Configuration avancée
 
-| Option | Description | Type | Valeur par défaut |
-|--------|-------------|------|------------------|
-| `backend` | Backend pour le stockage | string | `fs` |
-| `fs.location` | Emplacement pour stocker les fichiers | string | `null` |
-| `fs.maxSize` | Taille maximale pour le stockage (0 = pas de limite) | number | `0` |
-| `fs.cipher` | Algorithme de chiffrement par défaut | string | `aes-256-cbc` |
-| `fs.compress` | Algorithme de compression par défaut | string | `gzip` |
-| `collect.orphans.maxSize` | Taille maximale des orphelins à conserver | number | `0` |
-| `chronomancer.missing.time` | Planification CRON pour la vérification des fichiers manquants | string | `0 */1 * * *` |
-| `chronomancer.collect.time` | Planification CRON pour la collecte des fichiers à la corbeille | string | `42 3 * * *` |
-| `gold.namespaces` | Espaces de noms supportés pour le Gold Warden | array | `[]` |
+| Option                      | Description                                                     | Type   | Valeur par défaut |
+| --------------------------- | --------------------------------------------------------------- | ------ | ----------------- |
+| `backend`                   | Backend pour le stockage                                        | string | `fs`              |
+| `fs.location`               | Emplacement pour stocker les fichiers                           | string | `null`            |
+| `fs.maxSize`                | Taille maximale pour le stockage (0 = pas de limite)            | number | `0`               |
+| `fs.cipher`                 | Algorithme de chiffrement par défaut                            | string | `aes-256-cbc`     |
+| `fs.compress`               | Algorithme de compression par défaut                            | string | `gzip`            |
+| `collect.orphans.maxSize`   | Taille maximale des orphelins à conserver                       | number | `0`               |
+| `chronomancer.missing.time` | Planification CRON pour la vérification des fichiers manquants  | string | `0 */1 * * *`     |
+| `chronomancer.collect.time` | Planification CRON pour la collecte des fichiers à la corbeille | string | `42 3 * * *`      |
+| `gold.namespaces`           | Espaces de noms supportés pour le Gold Warden                   | array  | `[]`              |
 
 ### Variables d'environnement
 
@@ -192,6 +192,7 @@ L'état du coffre est minimal car il s'agit principalement d'un orchestrateur.
 #### Méthodes principales
 
 **Gestion des fichiers :**
+
 - `supply(xcraftStream, fileName, streamId, chestObjectId, cert, namespace, alias)` - Stocke un fichier dans le coffre
 - `retrieve(chestObjectId, key)` - Récupère un fichier du coffre
 - `location(chestObjectId)` - Obtient l'emplacement physique d'un fichier
@@ -199,16 +200,19 @@ L'état du coffre est minimal car il s'agit principalement d'un orchestrateur.
 - `saveAsTry(chestObjectId, outputFile, privateKey)` - Sauvegarde un fichier vers le système de fichiers
 
 **Gestion du cycle de vie :**
+
 - `trash(chestObjectId)` - Met un fichier à la corbeille
 - `unlink(chestObjectId)` - Dissocie un fichier
 - `trashAlias(chestAliasId)` - Met un alias à la corbeille
 
 **Recherche et navigation :**
+
 - `getObjectIdFromName(name)` - Récupère l'ID de la dernière version d'un fichier par nom
 - `getObjectIdHistoryFromName(name, limit)` - Récupère l'historique des versions
 - `getAliasIdsFromNamespace(namespace, depth)` - Liste les alias dans un namespace
 
 **Fonctionnalités avancées :**
+
 - `setVectors(chestObjectId, vectors)` - Définit des vecteurs pour la recherche vectorielle
 - `setReplica(enable)` - Active/désactive le mode réplica
 - `checkMissing(chestObjectId)` - Vérifie et demande la récupération de fichiers manquants
@@ -236,6 +240,7 @@ class ChestObjectShape {
 ```
 
 **Métadonnées système :**
+
 ```javascript
 class MetaShape {
   index = string;
@@ -245,6 +250,7 @@ class MetaShape {
 ```
 
 **Chiffrement :**
+
 ```javascript
 class EncryptionShape {
   cipher = enumeration('aes-256-cbc');
@@ -254,6 +260,7 @@ class EncryptionShape {
 ```
 
 **Métadonnées documentaires :**
+
 ```javascript
 class MetadataShape {
   title = option(string);
@@ -332,6 +339,7 @@ class GoldShape {
 #### Fonctionnement
 
 L'acteur Gold simplifie la gestion des fichiers en :
+
 - Créant automatiquement des alias dans un namespace basé sur l'ID du Gold
 - Vérifiant si le fichier a changé avant de créer une nouvelle version
 - Gérant automatiquement le cycle de vie des alias associés
@@ -356,6 +364,7 @@ class GoldWardenShape {
 #### Fonctionnement
 
 Le GoldWarden :
+
 - Surveille le répertoire `share` du projet en mode développement
 - Détecte automatiquement les ajouts, modifications et suppressions de fichiers
 - Crée/met à jour automatiquement les acteurs Gold correspondants
@@ -402,6 +411,7 @@ Le backend par défaut implémente un système de fichiers sécurisé avec hash 
 #### Chiffrement et déchiffrement
 
 Le backend gère le chiffrement hybride :
+
 - Génération d'une clé AES et d'un IV aléatoires
 - Chiffrement du fichier avec AES-256-CBC
 - Chiffrement de la clé AES + IV avec la clé publique RSA (OAEP padding)
@@ -450,6 +460,7 @@ Les tests utilisent `Elf.trial()` pour tester la logique sans persistance, perme
 ### Pattern Actor Model
 
 Le module suit le pattern Actor Model d'Xcraft avec :
+
 - **Isolation des états** : Chaque acteur gère son propre état
 - **Communication par messages** : Les acteurs communiquent via des quêtes
 - **Persistance automatique** : Les états sont automatiquement persistés dans la base de données
@@ -457,6 +468,7 @@ Le module suit le pattern Actor Model d'Xcraft avec :
 ### Pattern Repository
 
 Le Chest agit comme un repository centralisé pour :
+
 - **Abstraction du stockage** : Interface unifiée indépendante du backend
 - **Gestion des métadonnées** : Centralisation des informations sur les fichiers
 - **Orchestration** : Coordination entre les différents acteurs
@@ -464,6 +476,7 @@ Le Chest agit comme un repository centralisé pour :
 ### Pattern Observer
 
 Le GoldWarden implémente le pattern Observer pour :
+
 - **Surveillance passive** : Réaction aux changements du système de fichiers
 - **Synchronisation automatique** : Mise à jour transparente des acteurs Gold
 - **Découplage** : Séparation entre la détection des changements et leur traitement
@@ -471,6 +484,7 @@ Le GoldWarden implémente le pattern Observer pour :
 ### Pattern Strategy
 
 Le système de backend utilise le pattern Strategy pour :
+
 - **Interchangeabilité** : Possibilité de changer de backend de stockage
 - **Extensibilité** : Ajout facile de nouveaux backends
 - **Configuration** : Sélection du backend via la configuration
