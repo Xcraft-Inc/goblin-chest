@@ -326,6 +326,7 @@ class GoldShape {
 
 - `provide(file)` - Met à jour le fichier associé (crée automatiquement un alias si le fichier change)
 - `retrieve()` - Récupère l'emplacement du fichier associé
+- `update(data)` - Met à jour le fichier avec des données brutes (Buffer/String)
 - `trash()` - Met le Gold et son alias associé à la corbeille
 
 #### Fonctionnement
@@ -334,6 +335,7 @@ L'acteur Gold simplifie la gestion des fichiers en :
 - Créant automatiquement des alias dans un namespace basé sur l'ID du Gold
 - Vérifiant si le fichier a changé avant de créer une nouvelle version
 - Gérant automatiquement le cycle de vie des alias associés
+- Supportant la mise à jour via des données en mémoire ou des fichiers sur disque
 
 ### Acteur GoldWarden (Singleton)
 
@@ -359,6 +361,11 @@ Le GoldWarden :
 - Crée/met à jour automatiquement les acteurs Gold correspondants
 - Filtre les fichiers selon les namespaces configurés
 - Génère des IDs Gold basés sur la structure de répertoires
+
+#### Méthodes principales
+
+- `enabled()` - Indique si le warden est activé
+- `dispose()` - Nettoie les ressources (arrête la surveillance)
 
 #### Méthodes privées
 
@@ -387,6 +394,10 @@ Le backend par défaut implémente un système de fichiers sécurisé avec hash 
 - `del(hash)` - Supprime un fichier et met à jour l'index
 - `location(hash)` - Calcule l'emplacement physique
 - `setMaxSize(maxSize)` - Configure la limite de taille avec rotation automatique
+- `hash(file)` - Calcule le hash SHA-256 d'un fichier
+- `getWriteStream()` - Crée un stream d'écriture temporaire
+- `onError(streamFS)` - Nettoie les fichiers temporaires en cas d'erreur
+- `list()` - Itère sur tous les hash stockés
 
 #### Chiffrement et déchiffrement
 
@@ -408,6 +419,12 @@ objectLogic.upsert(42, 'image/png', 'binary', 'aes-256-cbc', 'gzip', 'key', 1);
 ```
 
 Les tests utilisent `Elf.trial()` pour tester la logique sans persistance, permettant de valider le comportement des mutations d'état.
+
+### Tests disponibles
+
+- **ChestObject** : Tests de création, mise à jour, dissociation et suppression
+- Validation des métadonnées et du chiffrement
+- Tests de gestion des générations et du cycle de vie
 
 ## Sécurité et performance
 
@@ -450,6 +467,45 @@ Le GoldWarden implémente le pattern Observer pour :
 - **Surveillance passive** : Réaction aux changements du système de fichiers
 - **Synchronisation automatique** : Mise à jour transparente des acteurs Gold
 - **Découplage** : Séparation entre la détection des changements et leur traitement
+
+### Pattern Strategy
+
+Le système de backend utilise le pattern Strategy pour :
+- **Interchangeabilité** : Possibilité de changer de backend de stockage
+- **Extensibilité** : Ajout facile de nouveaux backends
+- **Configuration** : Sélection du backend via la configuration
+
+## Utilitaires et helpers
+
+### Fonctions utilitaires Gold
+
+- `goldIdFromFile(file)` - Génère un ID Gold à partir d'un chemin de fichier
+- `fileFromGoldId(goldId)` - Extrait le chemin de fichier d'un ID Gold
+
+### Fonctions de sanitisation
+
+- `sanitizeName(filePath)` - Nettoie et sécurise les noms de fichiers
+- `testExtension(ext)` - Valide les extensions de fichiers
+- `tryGetExtension(state)` - Détermine l'extension d'un fichier à partir de ses métadonnées
+
+## Gestion des erreurs
+
+Le module gère plusieurs types d'erreurs :
+
+- **Fichiers manquants** : Récupération automatique via le réseau
+- **Erreurs de chiffrement** : Nettoyage des fichiers temporaires
+- **Erreurs de stream** : Gestion des interruptions de transfert
+- **Erreurs de backend** : Fallback et récupération gracieuse
+- **Erreurs de configuration** : Messages d'erreur explicites
+
+## Monitoring et observabilité
+
+Le module fournit plusieurs mécanismes de monitoring :
+
+- **Logs structurés** : Utilisation du système de logging Xcraft
+- **Événements système** : Émission d'événements pour les opérations critiques
+- **Métriques de performance** : Suivi des tailles et performances du stockage
+- **État de santé** : Vérifications périodiques de l'intégrité des données
 
 _Cette documentation a été générée automatiquement à partir du code source._
 
