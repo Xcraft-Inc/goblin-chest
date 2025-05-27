@@ -58,4 +58,10 @@ module.exports = [
     message: 'CRON time for trashed backend files to collect',
     default: '42 3 * * *',
   },
+  {
+    type: 'checkbox',
+    name: 'gold.namespaces',
+    message: 'Supported namespaces for the gold warden',
+    default: [],
+  },
 ];
