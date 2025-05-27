@@ -373,12 +373,12 @@ Le GoldWarden :
 
 #### Méthodes principales
 
-- `enabled()` - Indique si le warden est activé
+- `repository()` - Retourne le chemin du dépôt surveillé ou null si désactivé
 - `dispose()` - Nettoie les ressources (arrête la surveillance)
 
 #### Méthodes privées
 
-- `_update(goldId, file)` - Met à jour un fichier Gold détecté
+- `_provide(goldId, file)` - Met à jour un fichier Gold détecté
 - `_trash(golds)` - Met à la corbeille les Gold des fichiers supprimés
 
 ## Backend de stockage
