@@ -164,11 +164,12 @@ async listDocuments(namespace, depth = 1) {
 | `chronomancer.missing.time` | Planification CRON pour la vérification des fichiers manquants  | string | `0 */1 * * *`     |
 | `chronomancer.collect.time` | Planification CRON pour la collecte des fichiers à la corbeille | string | `42 3 * * *`      |
 | `gold.readonlyShare`        | Module pour le partage en lecture seule                         | string | `null`            |
+| `gold.gitRemote`            | Remote pour le dépôt Git du partage                             | string | `null`            |
 | `gold.namespaces`           | Espaces de noms supportés pour le Gold Warden                   | array  | `[]`              |
 
 ### Variables d'environnement
 
-Le module utilise la configuration Xcraft standard via `xcraft-core-etc` et ne définit pas de variables d'environnement spécifiques. Le GoldWarden est activé uniquement en mode développement (`NODE_ENV === 'development'`).
+Le module utilise la configuration Xcraft standard via `xcraft-core-etc` et ne définit pas de variables d'environnement spécifiques. Le GoldWarden est activé uniquement en mode développement (`NODE_ENV === 'development'`) ou lorsqu'un dépôt Git distant est configuré.
 
 ## Détails des acteurs
 
@@ -360,13 +361,14 @@ class GoldWardenShape {
 
 #### Cycle de vie
 
-- **`init(options)`** : Initialise la surveillance du système de fichiers (uniquement en mode développement)
+- **`init(options)`** : Initialise la surveillance du système de fichiers (en mode développement ou avec un dépôt Git distant)
 
 #### Fonctionnement
 
 Le GoldWarden :
 
 - Surveille le répertoire `share` du projet en mode développement
+- Clone et synchronise un dépôt Git distant si configuré
 - Détecte automatiquement les ajouts, modifications et suppressions de fichiers
 - Crée/met à jour automatiquement les acteurs Gold correspondants
 - Filtre les fichiers selon les namespaces configurés
@@ -419,6 +421,32 @@ Le backend gère le chiffrement hybride :
 - Chiffrement du fichier avec AES-256-CBC
 - Chiffrement de la clé AES + IV avec la clé publique RSA (OAEP padding)
 - Stockage de la clé chiffrée en base64 dans les métadonnées
+
+## Utilitaire Git
+
+Le module inclut une classe `Git` pour gérer les dépôts Git du GoldWarden :
+
+### Classe Git
+
+```javascript
+class Git {
+  constructor(outputDir)
+  
+  async checkout(branch)
+  async clone(url)
+  async commit()
+  async pull()
+  async push()
+  
+  static get available() // Vérifie si git est disponible
+}
+```
+
+Cette classe permet au GoldWarden de :
+
+- Cloner automatiquement un dépôt distant
+- Synchroniser les fichiers avec `git pull`
+- Valider et pousser les modifications avec `git commit` et `git push`
 
 ## Tests
 
