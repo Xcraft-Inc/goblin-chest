@@ -4,6 +4,28 @@
 
 Le module `goblin-chest` est un système de stockage de fichiers avancé pour l'écosystème Xcraft. Il fournit une solution complète pour gérer le cycle de vie des fichiers avec des fonctionnalités de chiffrement, compression, versionnement et aliasing. Ce module agit comme un coffre-fort sécurisé pour les fichiers, permettant leur stockage, récupération et gestion efficace dans une application Xcraft.
 
+## Sommaire
+
+- [Structure du module](#structure-du-module)
+- [Fonctionnement global](#fonctionnement-global)
+- [Exemples d'utilisation](#exemples-dutilisation)
+- [Interactions avec d'autres modules](#interactions-avec-dautres-modules)
+- [Configuration avancée](#configuration-avancée)
+- [Détails des acteurs](#détails-des-acteurs)
+  - [Acteur Chest (Singleton)](#acteur-chest-singleton)
+  - [Acteur ChestObject](#acteur-chestobject)
+  - [Acteur ChestAlias](#acteur-chestalias)
+  - [Acteur Gold](#acteur-gold)
+  - [Acteur GoldWarden (Singleton)](#acteur-goldwarden-singleton)
+- [Backend de stockage](#backend-de-stockage)
+- [Utilitaire Git](#utilitaire-git)
+- [Tests](#tests)
+- [Sécurité et performance](#sécurité-et-performance)
+- [Architecture et patterns](#architecture-et-patterns)
+- [Utilitaires et helpers](#utilitaires-et-helpers)
+- [Gestion des erreurs](#gestion-des-erreurs)
+- [Monitoring et observabilité](#monitoring-et-observabilité)
+
 ## Structure du module
 
 Le module s'articule autour de cinq acteurs Elf principaux :
@@ -431,13 +453,13 @@ Le module inclut une classe `Git` pour gérer les dépôts Git du GoldWarden :
 ```javascript
 class Git {
   constructor(outputDir)
-  
+
   async checkout(branch)
   async clone(url)
   async commit()
   async pull()
   async push()
-  
+
   static get available() // Vérifie si git est disponible
 }
 ```
