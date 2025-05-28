@@ -66,8 +66,8 @@ module.exports = [
   },
   {
     type: 'checkbox',
-    name: 'gold.gitURL',
-    message: 'URL for the share Git repository',
+    name: 'gold.gitRemote',
+    message: 'Remote for the share Git repository',
     default: null,
   },
   {
