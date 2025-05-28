@@ -163,6 +163,7 @@ async listDocuments(namespace, depth = 1) {
 | `collect.orphans.maxSize`   | Taille maximale des orphelins à conserver                       | number | `0`               |
 | `chronomancer.missing.time` | Planification CRON pour la vérification des fichiers manquants  | string | `0 */1 * * *`     |
 | `chronomancer.collect.time` | Planification CRON pour la collecte des fichiers à la corbeille | string | `42 3 * * *`      |
+| `gold.readonlyShare`        | Module pour le partage en lecture seule                         | string | `null`            |
 | `gold.namespaces`           | Espaces de noms supportés pour le Gold Warden                   | array  | `[]`              |
 
 ### Variables d'environnement
@@ -359,7 +360,7 @@ class GoldWardenShape {
 
 #### Cycle de vie
 
-- **`init()`** : Initialise la surveillance du système de fichiers (uniquement en mode développement)
+- **`init(options)`** : Initialise la surveillance du système de fichiers (uniquement en mode développement)
 
 #### Fonctionnement
 
@@ -374,12 +375,14 @@ Le GoldWarden :
 #### Méthodes principales
 
 - `repository()` - Retourne le chemin du dépôt surveillé ou null si désactivé
+- `setGoldPath(goldPath)` - Configure le chemin du dépôt à surveiller
 - `dispose()` - Nettoie les ressources (arrête la surveillance)
 
 #### Méthodes privées
 
 - `_provide(goldId, file)` - Met à jour un fichier Gold détecté
 - `_trash(golds)` - Met à la corbeille les Gold des fichiers supprimés
+- `_reload()` - Recharge la configuration et redémarre la surveillance
 
 ## Backend de stockage
 
