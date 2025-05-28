@@ -60,6 +60,12 @@ module.exports = [
   },
   {
     type: 'checkbox',
+    name: 'gold.readonlyShare',
+    message: "Module's name for the readonly share",
+    default: null,
+  },
+  {
+    type: 'checkbox',
     name: 'gold.namespaces',
     message: 'Supported namespaces for the gold warden',
     default: [],
