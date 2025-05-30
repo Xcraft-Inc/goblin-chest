@@ -11,20 +11,7 @@ Le module `goblin-chest` est un système de stockage de fichiers avancé pour l'
 - [Exemples d'utilisation](#exemples-dutilisation)
 - [Interactions avec d'autres modules](#interactions-avec-dautres-modules)
 - [Configuration avancée](#configuration-avancée)
-- [Détails des acteurs](#détails-des-acteurs)
-  - [Acteur Chest (Singleton)](#acteur-chest-singleton)
-  - [Acteur ChestObject](#acteur-chestobject)
-  - [Acteur ChestAlias](#acteur-chestalias)
-  - [Acteur Gold](#acteur-gold)
-  - [Acteur GoldWarden (Singleton)](#acteur-goldwarden-singleton)
-- [Backend de stockage](#backend-de-stockage)
-- [Utilitaire Git](#utilitaire-git)
-- [Tests](#tests)
-- [Sécurité et performance](#sécurité-et-performance)
-- [Architecture et patterns](#architecture-et-patterns)
-- [Utilitaires et helpers](#utilitaires-et-helpers)
-- [Gestion des erreurs](#gestion-des-erreurs)
-- [Monitoring et observabilité](#monitoring-et-observabilité)
+- [Détails des sources](#détails-des-sources)
 
 ## Structure du module
 
@@ -186,18 +173,21 @@ async listDocuments(namespace, depth = 1) {
 | `chronomancer.missing.time` | Planification CRON pour la vérification des fichiers manquants  | string | `0 */1 * * *`     |
 | `chronomancer.collect.time` | Planification CRON pour la collecte des fichiers à la corbeille | string | `42 3 * * *`      |
 | `gold.readonlyShare`        | Module pour le partage en lecture seule                         | string | `null`            |
-| `gold.gitRemote`            | Remote pour le dépôt Git du partage                             | string | `null`            |
+| `gold.git.remote`           | Remote pour le dépôt Git du partage                             | string | `null`            |
+| `gold.git.time`             | Planification CRON pour la synchronisation Git                  | string | `*/5 * * * *`     |
 | `gold.namespaces`           | Espaces de noms supportés pour le Gold Warden                   | array  | `[]`              |
 
 ### Variables d'environnement
 
-Le module utilise la configuration Xcraft standard via `xcraft-core-etc` et ne définit pas de variables d'environnement spécifiques. Le GoldWarden est activé uniquement en mode développement (`NODE_ENV === 'development'`) ou lorsqu'un dépôt Git distant est configuré.
+| Variable   | Description                                                    | Exemple       | Valeur par défaut |
+| ---------- | -------------------------------------------------------------- | ------------- | ----------------- |
+| `NODE_ENV` | Environnement d'exécution (active GoldWarden si 'development') | `development` | -                 |
 
-## Détails des acteurs
+## Détails des sources
 
-### Acteur Chest (Singleton)
+### `chest.js`
 
-L'acteur principal `Chest` est un singleton (`Elf.Alone`) qui orchestre toutes les opérations de stockage et de récupération.
+L'acteur principal `Chest` est un singleton (`Elf.Alone`) qui orchestre toutes les opérations de stockage et de récupération. Il gère la synchronisation client-serveur, la collecte des fichiers orphelins et la vérification des fichiers manquants.
 
 #### État et modèle de données
 
@@ -209,39 +199,41 @@ class ChestShape {
 
 L'état du coffre est minimal car il s'agit principalement d'un orchestrateur.
 
-#### Cycle de vie
+#### Méthodes publiques
 
-- **`init(options)`** : Initialise le coffre avec les options spécifiées. Configure le backend, détermine si on est côté client ou serveur, et configure les tâches de synchronisation.
+**`init(options)`** - Initialise le coffre avec les options spécifiées. Configure le backend, détermine si on est côté client ou serveur, et configure les tâches de synchronisation.
 
-#### Méthodes principales
+**`supply(xcraftStream, fileName, streamId, chestObjectId, cert, namespace, alias)`** - Stocke un fichier dans le coffre. Retourne l'ID du ChestObject ou du ChestAlias si un namespace est spécifié. Gère automatiquement le chiffrement si un certificat est fourni.
 
-**Gestion des fichiers :**
+**`retrieve(chestObjectId, key)`** - Récupère un fichier du coffre sous forme de stream Xcraft. Gère automatiquement le déchiffrement si une clé privée est fournie.
 
-- `supply(xcraftStream, fileName, streamId, chestObjectId, cert, namespace, alias)` - Stocke un fichier dans le coffre
-- `retrieve(chestObjectId, key)` - Récupère un fichier du coffre
-- `location(chestObjectId)` - Obtient l'emplacement physique d'un fichier
-- `locationTry(chestObjectId)` - Tente d'obtenir l'emplacement avec synchronisation automatique
-- `saveAsTry(chestObjectId, outputFile, privateKey)` - Sauvegarde un fichier vers le système de fichiers
+**`location(chestObjectId)`** - Obtient l'emplacement physique d'un fichier sur le système de fichiers local.
 
-**Gestion du cycle de vie :**
+**`locationTry(chestObjectId)`** - Tente d'obtenir l'emplacement avec synchronisation automatique depuis le serveur si le fichier n'est pas disponible localement.
 
-- `trash(chestObjectId)` - Met un fichier à la corbeille
-- `unlink(chestObjectId)` - Dissocie un fichier
-- `trashAlias(chestAliasId)` - Met un alias à la corbeille
+**`saveAsTry(chestObjectId, outputFile, privateKey)`** - Sauvegarde un fichier vers le système de fichiers avec déchiffrement automatique si nécessaire.
 
-**Recherche et navigation :**
+**`exists(chestObjectId, filePath)`** - Vérifie si un fichier existe en comparant son hash avec celui du ChestObject.
 
-- `getObjectIdFromName(name)` - Récupère l'ID de la dernière version d'un fichier par nom
-- `getObjectIdHistoryFromName(name, limit)` - Récupère l'historique des versions
-- `getAliasIdsFromNamespace(namespace, depth)` - Liste les alias dans un namespace
+**`trash(chestObjectId)`** - Met un fichier à la corbeille et supprime le fichier physique du backend.
 
-**Fonctionnalités avancées :**
+**`unlink(chestObjectId)`** - Dissocie un fichier (garde l'entrée DB, supprime le fichier physique).
 
-- `setVectors(chestObjectId, vectors)` - Définit des vecteurs pour la recherche vectorielle
-- `setReplica(enable)` - Active/désactive le mode réplica
-- `checkMissing(chestObjectId)` - Vérifie et demande la récupération de fichiers manquants
+**`trashAlias(chestAliasId)`** - Met un alias à la corbeille.
 
-### Acteur ChestObject
+**`setVectors(chestObjectId, vectors)`** - Définit des vecteurs pour la recherche vectorielle sur un objet.
+
+**`setReplica(enable)`** - Active/désactive le mode réplica avec gestion automatique des tâches CRON.
+
+**`checkMissing(chestObjectId)`** - Vérifie et demande la récupération de fichiers manquants via événement réseau.
+
+**`getObjectIdFromName(name)`** - Récupère l'ID de la dernière version d'un fichier par nom.
+
+**`getObjectIdHistoryFromName(name, limit)`** - Récupère l'historique des versions d'un fichier (10 versions par défaut).
+
+**`getAliasIdsFromNamespace(namespace, depth)`** - Liste les alias dans un namespace avec support de l'historique des versions.
+
+### `chestObject.js`
 
 Représente un fichier individuel stocké dans le coffre avec ses métadonnées complètes.
 
@@ -299,20 +291,23 @@ class MetadataShape {
 }
 ```
 
-#### Cycle de vie
+#### Méthodes publiques
 
-- **`create(id, desktopId, filePath)`** : Crée un nouvel objet dans le coffre
+**`create(id, desktopId, filePath)`** - Crée un nouvel objet dans le coffre (nom de fichier obligatoire).
 
-#### Méthodes principales
+**`upsert(size, mime, charset, cipher, compress, key)`** - Met à jour les informations du fichier avec incrémentation automatique de génération. Persiste automatiquement l'objet.
 
-- `upsert(size, mime, charset, cipher, compress, key)` - Met à jour les informations avec incrémentation automatique de génération
-- `setMetadata(metadata)` - Définit des métadonnées documentaires
-- `setAlias(namespace, name)` - Crée un alias pour l'objet
-- `setVectors(vectors)` - Définit des vecteurs pour la recherche
-- `unlink()` - Dissocie l'objet (garde l'entrée DB, supprime le fichier physique)
-- `trash()` - Met l'objet à la corbeille et supprime tous les alias associés
+**`setMetadata(metadata)`** - Définit des métadonnées documentaires optionnelles (titre, auteurs, etc.).
 
-### Acteur ChestAlias
+**`setAlias(namespace, name)`** - Crée un alias pour l'objet dans un namespace spécifique. Retourne l'ID du ChestAlias créé.
+
+**`setVectors(vectors)`** - Définit des vecteurs pour la recherche vectorielle.
+
+**`unlink()`** - Dissocie l'objet (garde l'entrée DB, marque comme 'unlinked').
+
+**`trash()`** - Met l'objet à la corbeille et supprime automatiquement tous les alias associés.
+
+### `chestAlias.js`
 
 Permet de référencer un `ChestObject` via un alias nommé dans un namespace organisé.
 
@@ -326,16 +321,15 @@ class ChestAliasShape {
 }
 ```
 
-#### Cycle de vie
+#### Méthodes publiques
 
-- **`create(id, desktopId, name)`** : Crée un nouvel alias (nom obligatoire)
+**`create(id, desktopId, name)`** - Crée un nouvel alias (nom obligatoire).
 
-#### Méthodes principales
+**`upsert(name)`** - Met à jour l'alias avec un nouveau nom et marque comme 'published'.
 
-- `upsert(name)` - Met à jour l'alias avec un nouveau nom
-- `trash()` - Met l'alias à la corbeille
+**`trash()`** - Met l'alias à la corbeille.
 
-### Acteur Gold
+### `gold.js`
 
 L'acteur `Gold` fournit une interface simplifiée pour gérer des fichiers avec un cycle de vie automatisé et des alias intégrés.
 
@@ -349,27 +343,19 @@ class GoldShape {
 }
 ```
 
-#### Cycle de vie
+#### Méthodes publiques
 
-- **`create(id, desktopId)`** : Crée un nouvel acteur Gold
+**`create(id, desktopId)`** - Crée un nouvel acteur Gold.
 
-#### Méthodes principales
+**`retrieve()`** - Récupère l'emplacement du fichier associé. Gère automatiquement le fallback sur le partage en lecture seule si le GoldWarden est désactivé.
 
-- `provide(file)` - Met à jour le fichier associé (crée automatiquement un alias si le fichier change)
-- `retrieve()` - Récupère l'emplacement du fichier associé
-- `update(data)` - Met à jour le fichier avec des données brutes (Buffer/String)
-- `trash()` - Met le Gold et son alias associé à la corbeille
+**`provide(filePath)`** - Met à jour le fichier associé depuis un chemin sur disque. Optimise en vérifiant si le fichier a changé avant de créer une nouvelle version.
 
-#### Fonctionnement
+**`update(data)`** - Met à jour le fichier avec des données brutes (Buffer/String). Supporte l'écriture directe dans le dépôt Git si le GoldWarden est actif.
 
-L'acteur Gold simplifie la gestion des fichiers en :
+**`trash()`** - Met le Gold et son alias associé à la corbeille.
 
-- Créant automatiquement des alias dans un namespace basé sur l'ID du Gold
-- Vérifiant si le fichier a changé avant de créer une nouvelle version
-- Gérant automatiquement le cycle de vie des alias associés
-- Supportant la mise à jour via des données en mémoire ou des fichiers sur disque
-
-### Acteur GoldWarden (Singleton)
+### `goldWarden.js`
 
 Le `GoldWarden` est un singleton qui surveille le système de fichiers pour synchroniser automatiquement les fichiers Gold.
 
@@ -381,9 +367,15 @@ class GoldWardenShape {
 }
 ```
 
-#### Cycle de vie
+#### Méthodes publiques
 
-- **`init(options)`** : Initialise la surveillance du système de fichiers (en mode développement ou avec un dépôt Git distant)
+**`init(options)`** - Initialise la surveillance du système de fichiers (en mode développement ou avec un dépôt Git distant).
+
+**`dispose()`** - Nettoie les ressources (arrête la surveillance).
+
+**`repository()`** - Retourne le chemin du dépôt surveillé ou null si désactivé.
+
+**`setGoldPath(goldPath)`** - Configure le chemin du dépôt à surveiller et redémarre la surveillance.
 
 #### Fonctionnement
 
@@ -395,22 +387,9 @@ Le GoldWarden :
 - Crée/met à jour automatiquement les acteurs Gold correspondants
 - Filtre les fichiers selon les namespaces configurés
 - Génère des IDs Gold basés sur la structure de répertoires
+- Gère la synchronisation Git avec staging automatique et commits périodiques
 
-#### Méthodes principales
-
-- `repository()` - Retourne le chemin du dépôt surveillé ou null si désactivé
-- `setGoldPath(goldPath)` - Configure le chemin du dépôt à surveiller
-- `dispose()` - Nettoie les ressources (arrête la surveillance)
-
-#### Méthodes privées
-
-- `_provide(goldId, file)` - Met à jour un fichier Gold détecté
-- `_trash(golds)` - Met à la corbeille les Gold des fichiers supprimés
-- `_reload()` - Recharge la configuration et redémarre la surveillance
-
-## Backend de stockage
-
-### Backend FileSystem (SHFS)
+### `backend/fs.js`
 
 Le backend par défaut implémente un système de fichiers sécurisé avec hash (`SHFS` - Secure Hash File System).
 
@@ -424,157 +403,66 @@ Le backend par défaut implémente un système de fichiers sécurisé avec hash 
 
 #### Méthodes principales
 
-- `put(streamFS, cert)` - Stocke un fichier avec chiffrement optionnel
-- `get(hash, encryption, key)` - Récupère un fichier avec déchiffrement optionnel
-- `exists(hash)` - Vérifie l'existence d'un fichier
-- `del(hash)` - Supprime un fichier et met à jour l'index
-- `location(hash)` - Calcule l'emplacement physique
-- `setMaxSize(maxSize)` - Configure la limite de taille avec rotation automatique
-- `hash(file)` - Calcule le hash SHA-256 d'un fichier
-- `getWriteStream()` - Crée un stream d'écriture temporaire
-- `onError(streamFS)` - Nettoie les fichiers temporaires en cas d'erreur
-- `list()` - Itère sur tous les hash stockés
+**`put(streamFS, cert)`** - Stocke un fichier avec chiffrement optionnel. Retourne le hash, la taille et les informations de chiffrement.
 
-#### Chiffrement et déchiffrement
+**`get(hash, encryption, key)`** - Récupère un fichier avec déchiffrement optionnel. Retourne un stream de lecture.
 
-Le backend gère le chiffrement hybride :
+**`exists(hash)`** - Vérifie l'existence d'un fichier dans le stockage.
 
-- Génération d'une clé AES et d'un IV aléatoires
-- Chiffrement du fichier avec AES-256-CBC
-- Chiffrement de la clé AES + IV avec la clé publique RSA (OAEP padding)
-- Stockage de la clé chiffrée en base64 dans les métadonnées
+**`del(hash)`** - Supprime un fichier et met à jour l'index en mémoire.
 
-## Utilitaire Git
+**`location(hash)`** - Calcule l'emplacement physique d'un fichier basé sur son hash.
 
-Le module inclut une classe `Git` pour gérer les dépôts Git du GoldWarden :
+**`setMaxSize(maxSize)`** - Configure la limite de taille avec rotation automatique des anciens fichiers.
 
-### Classe Git
+**`hash(file)`** - Calcule le hash SHA-256 d'un fichier.
 
-```javascript
-class Git {
-  constructor(outputDir)
+**`getWriteStream()`** - Crée un stream d'écriture temporaire avec nom unique.
 
-  async checkout(branch)
-  async clone(url)
-  async commit()
-  async pull()
-  async push()
+**`onError(streamFS)`** - Nettoie les fichiers temporaires en cas d'erreur.
 
-  static get available() // Vérifie si git est disponible
-}
-```
+**`list()`** - Itère sur tous les hash stockés dans l'index.
 
-Cette classe permet au GoldWarden de :
+### `git/git.js`
 
-- Cloner automatiquement un dépôt distant
-- Synchroniser les fichiers avec `git pull`
-- Valider et pousser les modifications avec `git commit` et `git push`
+Le module inclut une classe `Git` pour gérer les dépôts Git du GoldWarden.
 
-## Tests
+#### Méthodes principales
 
-Le module inclut des tests unitaires pour valider le comportement des acteurs :
+**`checkout(branch)`** - Change de branche dans le dépôt.
 
-```javascript
-// Exemple de test pour ChestObject
-const objectLogic = Elf.trial(ChestObjectLogic);
-objectLogic.create('chestObject@test', '/home/yeti/foobar.obj');
-objectLogic.upsert(42, 'image/png', 'binary', 'aes-256-cbc', 'gzip', 'key', 1);
-```
+**`clone(url, branch)`** - Clone un dépôt distant avec une branche spécifique.
+
+**`add(...files)`** - Ajoute des fichiers au staging.
+
+**`rm(...files)`** - Supprime des fichiers du staging et du système de fichiers.
+
+**`commit()`** - Valide les modifications avec un message automatique.
+
+**`pull()`** - Récupère les modifications depuis le dépôt distant.
+
+**`push()`** - Pousse les modifications vers le dépôt distant.
+
+**`reset()`** - Remet le dépôt dans un état propre.
+
+**`staged()`** - Vérifie s'il y a des modifications en staging.
+
+Cette classe permet au GoldWarden de synchroniser automatiquement les fichiers avec un dépôt Git distant, gérant le staging, les commits et la synchronisation bidirectionnelle.
+
+### `test/chestObject.spec.js`
+
+Le module inclut des tests unitaires pour valider le comportement des acteurs ChestObject.
+
+#### Tests disponibles
+
+- **Création** : Validation de la création d'objets avec noms de fichiers
+- **Mise à jour** : Tests des métadonnées, chiffrement et génération
+- **Cycle de vie** : Tests de dissociation (`unlink`) et suppression (`trash`)
+- **Chiffrement** : Validation des combinaisons cipher/key pour l'encryption
 
 Les tests utilisent `Elf.trial()` pour tester la logique sans persistance, permettant de valider le comportement des mutations d'état.
 
-### Tests disponibles
-
-- **ChestObject** : Tests de création, mise à jour, dissociation et suppression
-- Validation des métadonnées et du chiffrement
-- Tests de gestion des générations et du cycle de vie
-
-## Sécurité et performance
-
-### Sécurité
-
-- **Chiffrement hybride** : Combinaison de chiffrement symétrique (AES) et asymétrique (RSA)
-- **Clés uniques** : Génération de clés et IV aléatoires pour chaque fichier
-- **Isolation des données** : Structure de hash empêchant la prédiction des emplacements
-- **Gestion sécurisée des clés** : Les clés symétriques sont chiffrées avec des clés publiques
-- **Sanitisation des noms** : Nettoyage automatique des noms de fichiers pour éviter les attaques de traversée de répertoires
-
-### Performance
-
-- **Déduplication automatique** : Les fichiers identiques (même hash) ne sont stockés qu'une fois
-- **Index en mémoire** : Accès rapide aux métadonnées des fichiers
-- **Streaming** : Traitement des fichiers par flux pour gérer de gros volumes
-- **Compression** : Réduction de l'espace de stockage avec GZIP
-- **Rotation intelligente** : Suppression des fichiers les moins récemment utilisés
-- **Surveillance temps réel** : Le GoldWarden utilise `chokidar` pour une surveillance efficace du système de fichiers
-
-## Architecture et patterns
-
-### Pattern Actor Model
-
-Le module suit le pattern Actor Model d'Xcraft avec :
-
-- **Isolation des états** : Chaque acteur gère son propre état
-- **Communication par messages** : Les acteurs communiquent via des quêtes
-- **Persistance automatique** : Les états sont automatiquement persistés dans la base de données
-
-### Pattern Repository
-
-Le Chest agit comme un repository centralisé pour :
-
-- **Abstraction du stockage** : Interface unifiée indépendante du backend
-- **Gestion des métadonnées** : Centralisation des informations sur les fichiers
-- **Orchestration** : Coordination entre les différents acteurs
-
-### Pattern Observer
-
-Le GoldWarden implémente le pattern Observer pour :
-
-- **Surveillance passive** : Réaction aux changements du système de fichiers
-- **Synchronisation automatique** : Mise à jour transparente des acteurs Gold
-- **Découplage** : Séparation entre la détection des changements et leur traitement
-
-### Pattern Strategy
-
-Le système de backend utilise le pattern Strategy pour :
-
-- **Interchangeabilité** : Possibilité de changer de backend de stockage
-- **Extensibilité** : Ajout facile de nouveaux backends
-- **Configuration** : Sélection du backend via la configuration
-
-## Utilitaires et helpers
-
-### Fonctions utilitaires Gold
-
-- `goldIdFromFile(file)` - Génère un ID Gold à partir d'un chemin de fichier
-- `fileFromGoldId(goldId)` - Extrait le chemin de fichier d'un ID Gold
-
-### Fonctions de sanitisation
-
-- `sanitizeName(filePath)` - Nettoie et sécurise les noms de fichiers
-- `testExtension(ext)` - Valide les extensions de fichiers
-- `tryGetExtension(state)` - Détermine l'extension d'un fichier à partir de ses métadonnées
-
-## Gestion des erreurs
-
-Le module gère plusieurs types d'erreurs :
-
-- **Fichiers manquants** : Récupération automatique via le réseau
-- **Erreurs de chiffrement** : Nettoyage des fichiers temporaires
-- **Erreurs de stream** : Gestion des interruptions de transfert
-- **Erreurs de backend** : Fallback et récupération gracieuse
-- **Erreurs de configuration** : Messages d'erreur explicites
-
-## Monitoring et observabilité
-
-Le module fournit plusieurs mécanismes de monitoring :
-
-- **Logs structurés** : Utilisation du système de logging Xcraft
-- **Événements système** : Émission d'événements pour les opérations critiques
-- **Métriques de performance** : Suivi des tailles et performances du stockage
-- **État de santé** : Vérifications périodiques de l'intégrité des données
-
-_Cette documentation a été générée automatiquement à partir du code source._
+_Cette documentation a été mise à jour automatiquement à partir du code source._
 
 [goblin-chronomancer]: https://github.com/Xcraft-Inc/goblin-chronomancer
 [xcraft-core-goblin]: https://github.com/Xcraft-Inc/xcraft-core-goblin
