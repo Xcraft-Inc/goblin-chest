@@ -27,7 +27,7 @@ Au démarrage, le GoldWarden :
 1. **Charge la configuration** depuis `goblin-chest.gold`
 2. **Détermine le répertoire à surveiller** selon cette priorité :
    - Paramètre `goldPath` explicite
-   - `projectPath/share` en mode développement
+   - `projectPath/share` en mode développement (côté serveur uniquement)
    - `appConfigPath/var/share` avec Git activé
 3. **Configure la synchronisation Git** si un remote est spécifié
 4. **Initialise la surveillance** avec Chokidar
@@ -110,7 +110,7 @@ Quand la synchronisation Git est activée :
    - `git pull -f`
    - Staging des fichiers accumulés
    - `git commit -m "Update files"` (si modifications)
-   - `git push`
+   - `git push` (uniquement en production)
 
 #### Staging des modifications
 
@@ -124,17 +124,22 @@ La fonction `stageFiles()` traite les modifications accumulées en séparant les
 
 ### Gestion des modes de fonctionnement
 
-#### Mode développement
+#### Mode client
+
+En mode client (quand `goblinConfig.actionsSync?.enable` est activé), le GoldWarden reste inactif et ne surveille aucun répertoire. La synchronisation des fichiers se fait via le système de réplication Chest.
+
+#### Mode développement (serveur)
 
 - Répertoire : `projectPath/share`
-- Pas de synchronisation Git automatique
+- Pas de synchronisation Git automatique (pas de push)
 - Surveillance directe du répertoire local
+- Commits locaux uniquement
 
-#### Mode production avec Git
+#### Mode production avec Git (serveur)
 
 - Répertoire : `appConfigPath/var/share`
 - Clone automatique du dépôt distant si inexistant
-- Synchronisation bidirectionnelle programmée
+- Synchronisation bidirectionnelle programmée avec push
 - Gestion des branches par version
 - Reset automatique au démarrage pour un état propre
 
@@ -170,7 +175,7 @@ La méthode `init()` accepte des options de type `ChestOptions` et appelle `_rel
 1. **Arrête les tâches Chronomancer** existantes (`goldWardenGit`)
 2. **Nettoie le staging Git** si actif
 3. **Détermine le goldPath** selon la priorité configurée
-4. **Configure Git** si un remote est spécifié
+4. **Configure Git** si un remote est spécifié et que Git est disponible
 5. **Initialise la surveillance Chokidar** avec filtrage par namespace
 
 #### Surveillance active
@@ -224,14 +229,14 @@ Le GoldWarden orchestre les acteurs Gold mais ne gère pas directement le stocka
 
 #### Gestion des identifiants Gold
 
-- **`goldIdFromFile(file)`** : Convertit un chemin de fichier en identifiant Gold
-- **`fileFromGoldId(goldId)`** : Convertit un identifiant Gold en chemin de fichier
+- **`goldIdFromFile(file)`** : Convertit un chemin de fichier en identifiant Gold en encodant chaque segment du chemin
+- **`fileFromGoldId(goldId)`** : Convertit un identifiant Gold en chemin de fichier en décodant les segments
 
 #### Classe Git intégrée
 
 Le GoldWarden utilise une classe `Git` dédiée qui encapsule les opérations Git avec :
 
-- Vérification de la disponibilité de l'exécutable `git`
+- Vérification de la disponibilité de l'exécutable `git` via `Git.available`
 - Gestion des codes de retour et messages d'erreur
 - Environnement `LANG=C` pour des messages standardisés
 - Support des opérations : `clone`, `checkout`, `pull`, `add`, `rm`, `commit`, `push`, `reset`, `staged`
@@ -260,6 +265,17 @@ Le système de branches suit une logique spécifique selon l'environnement :
 - **Clone automatique** si le répertoire Git n'existe pas
 - **Gestion des erreurs de réseau** lors des opérations distantes
 - **Logs détaillés** pour le diagnostic et le débogage
+
+### Conditions d'activation
+
+Le GoldWarden ne s'active que si plusieurs conditions sont réunies :
+
+1. **Pas en mode client** : `goblinConfig.actionsSync?.enable` doit être false ou undefined
+2. **Répertoire accessible** : Le `goldPath` doit exister et être accessible
+3. **Namespaces configurés** : Au moins un namespace doit être défini dans `gold.namespaces`
+4. **Git disponible** (optionnel) : Si la synchronisation Git est requise, l'exécutable `git` doit être présent
+
+Si ces conditions ne sont pas remplies, le GoldWarden reste en mode désactivé et les acteurs Gold utilisent les mécanismes de fallback.
 
 ---
 
