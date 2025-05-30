@@ -66,9 +66,15 @@ module.exports = [
   },
   {
     type: 'checkbox',
-    name: 'gold.gitRemote',
+    name: 'gold.git.remote',
     message: 'Remote for the share Git repository',
     default: null,
+  },
+  {
+    type: 'input',
+    name: 'gold.git.time',
+    message: 'CRON time for git synchronization',
+    default: '*/5 * * * *',
   },
   {
     type: 'checkbox',
