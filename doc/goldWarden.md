@@ -53,14 +53,25 @@ Au démarrage, le GoldWarden :
 
 #### Diagramme de séquence du démarrage
 
-```
-GoldWarden -> Config: load('goblin-chest')
-GoldWarden -> FileSystem: check goldPath existence
-GoldWarden -> Git: clone/reset repository (si configuré)
-GoldWarden -> Chronomancer: setup git sync schedule
-GoldWarden -> Chokidar: watch directory
-GoldWarden -> Database: query existing Gold entries
-GoldWarden -> GoldWarden: trash orphaned entries
+```mermaid
+sequenceDiagram
+    participant GW as GoldWarden
+    participant Config as Configuration
+    participant FS as FileSystem
+    participant Git as Git
+    participant Chrono as Chronomancer
+    participant Chok as Chokidar
+    participant DB as Database
+
+    GW->>Config: load('goblin-chest')
+    GW->>FS: check goldPath existence
+    alt Git configuré
+        GW->>Git: clone/reset repository
+        GW->>Chrono: setup git sync schedule
+    end
+    GW->>Chok: watch directory
+    GW->>DB: query existing Gold entries
+    GW->>GW: trash orphaned entries
 ```
 
 ### Surveillance des fichiers
@@ -98,14 +109,24 @@ Pour chaque fichier surveillé, le GoldWarden :
 
 #### Diagramme de séquence pour un nouveau fichier
 
-```
-Chokidar -> GoldWarden: 'add' event (filePath)
-GoldWarden -> GoldWarden: goldIdFromFile(filePath)
-GoldWarden -> Gold: create(goldId, feedId)
-GoldWarden -> Gold: provide(filePath)
-Gold -> Chest: supply(filePath, namespace, alias)
-Chest -> Backend: store file with hash
-GoldWarden -> Git: stage file (si activé)
+```mermaid
+sequenceDiagram
+    participant Chok as Chokidar
+    participant GW as GoldWarden
+    participant Gold as Gold Actor
+    participant Chest as Chest
+    participant Backend as Backend
+    participant Git as Git
+
+    Chok->>GW: 'add' event (filePath)
+    GW->>GW: goldIdFromFile(filePath)
+    GW->>Gold: create(goldId, feedId)
+    GW->>Gold: provide(filePath)
+    Gold->>Chest: supply(filePath, namespace, alias)
+    Chest->>Backend: store file with hash
+    alt Git activé
+        GW->>Git: stage file
+    end
 ```
 
 ### Synchronisation Git

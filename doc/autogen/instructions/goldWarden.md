@@ -5,7 +5,7 @@
   - Comment il fonctionne dans les moindres détails
   - Que fait le GoldWarden au démarrage
   - Que fait le GoldWarden le reste du temps
-- Toujours fournir des diagrammes de séquence textuels si nécessaire
+- Toujours fournir des diagrammes de séquence (mermaid) si nécessaire
 - Ne **jamais écrire du code**, ce document doit uniquement expliquer le fonctionnement en français
 - Ne pas expliquer des banalités
 - Si le contexte contient un **README précédent** "## README précédent"
