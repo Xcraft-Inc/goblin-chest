@@ -2,7 +2,25 @@
 
 ## Aperçu
 
-Le **GoldWarden** est un acteur singleton du framework Xcraft qui surveille et synchronise automatiquement un répertoire de fichiers partagés avec un système de stockage centralisé (Chest). Il agit comme un gardien intelligent qui détecte les modifications de fichiers dans un répertoire local et les propage vers le système de stockage distribué, tout en gérant optionnellement la synchronisation Git pour la collaboration.
+Le **GoldWarden** est un acteur singleton du framework Xcraft qui surveille et synchronise automatiquement un répertoire de fichiers partagés avec un système de stockage distribué (Chest). Il agit comme un gardien intelligent qui détecte les modifications de fichiers dans un répertoire local et les propage vers le système de stockage distribué, tout en gérant optionnellement la synchronisation Git pour la collaboration.
+
+## Sommaire
+
+### Fonctionnement
+
+- [Architecture et responsabilités](#architecture-et-responsabilités)
+- [Démarrage et initialisation](#démarrage-et-initialisation)
+- [Surveillance des fichiers](#surveillance-des-fichiers)
+- [Gestion des acteurs Gold](#gestion-des-acteurs-gold)
+- [Synchronisation Git](#synchronisation-git)
+- [Gestion des modes de fonctionnement](#gestion-des-modes-de-fonctionnement)
+- [Nettoyage et cohérence](#nettoyage-et-cohérence)
+- [Cycle de vie détaillé](#cycle-de-vie-détaillé)
+- [API publique](#api-publique)
+- [Intégration avec le système Chest](#intégration-avec-le-système-chest)
+- [Fonctions utilitaires](#fonctions-utilitaires)
+- [Gestion avancée de la synchronisation](#gestion-avancée-de-la-synchronisation)
+- [Conditions d'activation](#conditions-dactivation)
 
 ## Fonctionnement
 
@@ -102,6 +120,7 @@ Quand la synchronisation Git est activée :
 #### Processus de synchronisation
 
 1. **Détermination de la branche** :
+
    - `master` en mode développement
    - `X.Y` basé sur `appVersion` en production (ex: `1.2` pour version `1.2.3`)
 

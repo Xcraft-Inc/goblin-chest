@@ -26,6 +26,10 @@ Le README généré doit être en **Markdown** et suivre cette structure :
 
 (Description concise haut-niveau du fonctionnement)
 
+## Sommaire
+
+(Sommaire de tous les chapitres de troisème niveau : `###`)
+
 ## Fonctionnement
 
 (Explication détaillée du fonctionnement du GoldWarden en respectant les objectifs)
