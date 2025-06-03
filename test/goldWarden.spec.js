@@ -26,7 +26,9 @@ describe('goblin.chest.goldWarden', function () {
 
   it('watch', async function () {
     this.timeout(process.env.NODE_ENV === 'development' ? 1000000 : 20000);
-    await runner.it(async function () {
+
+    /** @this {Elf} */
+    async function test() {
       let golds = [];
       const goldWarden = new GoldWarden(this);
       await goldWarden.init({goldPath});
@@ -69,6 +71,8 @@ describe('goblin.chest.goldWarden', function () {
       expect(golds.length).length.to.be.equals(2);
       expect(golds).includes('gold@workflows@test%2Dworkflow@index%2Ejs');
       expect(golds).includes('gold@workflows@test%2Dworkflow@workflow%2Ejson');
-    });
+    }
+
+    await runner.it(test);
   });
 });
