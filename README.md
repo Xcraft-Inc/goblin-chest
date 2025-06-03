@@ -150,6 +150,20 @@ async listDocuments(namespace, depth = 1) {
 }
 ```
 
+### Utiliser GoldFs pour l'accès aux fichiers Gold
+
+```javascript
+// Dans une méthode d'un acteur Elf
+async readGoldFile(location) {
+  const GoldFs = require('./lib/goldFs.js');
+  const goldFs = new GoldFs(this);
+
+  // Lire un fichier Gold comme un fichier système normal
+  const content = await goldFs.readFile(location, 'utf8');
+  return content;
+}
+```
+
 ## Interactions avec d'autres modules
 
 - **[goblin-chronomancer]** : Utilisé pour planifier des tâches périodiques comme la vérification des fichiers manquants et la collecte des fichiers orphelins
@@ -158,7 +172,7 @@ async listDocuments(namespace, depth = 1) {
 - **[xcraft-core-utils]** : Fournit des utilitaires pour les fichiers, les verrous et les checksums
 - **[xcraft-core-etc]** : Gère la configuration du module
 - **[xcraft-core-fs]** : Utilisé pour les opérations de listage de fichiers dans le backend
-- **[xcraft-core-host]** : Fournit les clés de routage pour les streams
+- **[xcraft-core-host]** : Fournit les clés de routage pour les streams et les informations de projet
 
 ## Configuration avancée
 
@@ -377,6 +391,8 @@ class GoldWardenShape {
 
 **`setGoldPath(goldPath)`** - Configure le chemin du dépôt à surveiller et redémarre la surveillance.
 
+**`setGitRemote(gitRemote)`** - Configure le dépôt Git distant et redémarre la surveillance.
+
 #### Fonctionnement
 
 Le GoldWarden :
@@ -388,6 +404,27 @@ Le GoldWarden :
 - Filtre les fichiers selon les namespaces configurés
 - Génère des IDs Gold basés sur la structure de répertoires
 - Gère la synchronisation Git avec staging automatique et commits périodiques
+- Utilise des branches spécifiques selon l'environnement (master en développement, version en production)
+
+### `goldFs.js`
+
+La classe `GoldFs` fournit une interface similaire au système de fichiers pour accéder aux fichiers Gold.
+
+#### Méthodes principales
+
+**`readdir(location)`** - Liste les fichiers et dossiers dans un répertoire Gold virtuel. Retourne un tableau de noms.
+
+**`readdirent(location)`** - Liste les fichiers et dossiers avec des objets Dirent pour distinguer fichiers et répertoires.
+
+**`readFile(location, options)`** - Lit le contenu d'un fichier Gold avec les mêmes options que fs.readFile.
+
+**`readJSON(location, options)`** - Lit et parse un fichier JSON Gold.
+
+**`exists(location)`** - Vérifie si un fichier Gold existe dans la base de données.
+
+**`resolve(location)`** - Résout l'emplacement physique d'un fichier Gold sur le système de fichiers.
+
+Cette classe permet d'utiliser les fichiers Gold comme s'ils étaient des fichiers système normaux, en masquant la complexité du système de stockage sous-jacent.
 
 ### `backend/fs.js`
 

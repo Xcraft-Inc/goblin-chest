@@ -240,14 +240,16 @@ La méthode `dispose()` assure un arrêt propre :
 
 - **`repository()`** : Retourne le chemin du répertoire surveillé ou `null` si désactivé
 - **`setGoldPath(goldPath)`** : Change le répertoire surveillé dynamiquement
+- **`setGitRemote(gitRemote)`** : Change l'URL du dépôt Git distant dynamiquement
 
 #### Configuration dynamique
 
-Le GoldWarden peut être reconfiguré à chaud via `setGoldPath()`, ce qui :
+Le GoldWarden peut être reconfiguré à chaud via :
 
-1. Arrête la surveillance actuelle si le chemin change
-2. Appelle `_reload()` avec le nouveau chemin
-3. Redémarre la surveillance et la synchronisation
+- **`setGoldPath()`** : Change le répertoire surveillé et redémarre la surveillance
+- **`setGitRemote()`** : Change l'URL Git et reconfigure la synchronisation
+
+Ces méthodes arrêtent la surveillance actuelle si les paramètres changent, puis appellent `_reload()` pour redémarrer avec la nouvelle configuration.
 
 ### Intégration avec le système Chest
 
