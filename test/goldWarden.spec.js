@@ -37,7 +37,10 @@ describe('goblin.chest.goldWarden', function () {
 
       const reader = await this.cryo.reader(GoldLogic.db);
       const golds = reader.queryArchetype('gold', GoldShape).field('id').all();
+
       expect(golds.length).length.to.be.equals(2);
+      expect(golds).includes('gold@workflows@test%2Dworkflow@index%2Ejs');
+      expect(golds).includes('gold@workflows@test%2Dworkflow@workflow%2Ejson');
     });
   });
 });
