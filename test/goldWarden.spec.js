@@ -24,7 +24,7 @@ describe('goblin.chest.goldWarden', function () {
     fse.removeSync(testWorkflow);
   });
 
-  it('init', async function () {
+  it('watch', async function () {
     this.timeout(process.env.NODE_ENV === 'development' ? 1000000 : 20000);
     await runner.it(async function () {
       let golds = [];
@@ -58,6 +58,17 @@ describe('goblin.chest.goldWarden', function () {
       expect(golds).includes('gold@workflows@test%2Dworkflow@index%2Ejs');
       expect(golds).includes('gold@workflows@test%2Dworkflow@workflow%2Ejson');
       expect(golds).includes('gold@workflows@temp%2Dworkflow@bragon%2Ejs');
+
+      /* Remove files */
+      fse.removeSync(testWorkflow);
+
+      await setTimeoutAsync(5000);
+
+      /* Check for test workflows directory */
+      golds = reader.queryArchetype('gold', GoldShape).field('id').all();
+      expect(golds.length).length.to.be.equals(2);
+      expect(golds).includes('gold@workflows@test%2Dworkflow@index%2Ejs');
+      expect(golds).includes('gold@workflows@test%2Dworkflow@workflow%2Ejson');
     });
   });
 });
