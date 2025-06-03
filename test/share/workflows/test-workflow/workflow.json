@@ -1,1 +1,6 @@
-{}
+{
+  "id": "workflow@test",
+  "name": "Test",
+  "description": "Test",
+  "triggers": []
+}

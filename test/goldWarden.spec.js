@@ -2,6 +2,7 @@
 'use strict';
 
 const path = require('node:path');
+const fse = require('fs-extra');
 const {setTimeout: setTimeoutAsync} = require('node:timers/promises');
 const {expect} = require('chai');
 const {Elf} = require('xcraft-core-goblin/lib/test.js');
@@ -11,6 +12,7 @@ const {GoldLogic, GoldShape} = require('../lib/gold.js');
 describe('goblin.chest.goldWarden', function () {
   let runner;
   const goldPath = path.join(__dirname, 'share');
+  const testWorkflow = path.join(goldPath, 'workflows/temp-workflow');
 
   this.beforeAll(function () {
     runner = new Elf.Runner();
@@ -19,25 +21,43 @@ describe('goblin.chest.goldWarden', function () {
 
   this.afterAll(function () {
     runner.dispose();
+    fse.removeSync(testWorkflow);
   });
 
   it('init', async function () {
-    this.timeout(process.env.NODE_ENV === 'development' ? 1000000 : 10000);
+    this.timeout(process.env.NODE_ENV === 'development' ? 1000000 : 20000);
     await runner.it(async function () {
+      let golds = [];
       const goldWarden = new GoldWarden(this);
       await goldWarden.init({goldPath});
+      const reader = await this.cryo.reader(GoldLogic.db);
 
       const repository = await goldWarden.repository();
       expect(repository).to.be.equals(goldPath);
 
-      await setTimeoutAsync(1000);
+      await setTimeoutAsync(2000);
 
-      const reader = await this.cryo.reader(GoldLogic.db);
-      const golds = reader.queryArchetype('gold', GoldShape).field('id').all();
-
+      /* Check for test workflows directory */
+      golds = reader.queryArchetype('gold', GoldShape).field('id').all();
       expect(golds.length).length.to.be.equals(2);
       expect(golds).includes('gold@workflows@test%2Dworkflow@index%2Ejs');
       expect(golds).includes('gold@workflows@test%2Dworkflow@workflow%2Ejson');
+
+      /* Add new files */
+      await fse.mkdir(testWorkflow);
+      await fse.writeFile(
+        path.join(testWorkflow, 'bragon.js'),
+        '// Le Chevalier Bragon'
+      );
+
+      await setTimeoutAsync(5000);
+
+      /* Check for new workflow */
+      golds = reader.queryArchetype('gold', GoldShape).field('id').all();
+      expect(golds.length).length.to.be.equals(3);
+      expect(golds).includes('gold@workflows@test%2Dworkflow@index%2Ejs');
+      expect(golds).includes('gold@workflows@test%2Dworkflow@workflow%2Ejson');
+      expect(golds).includes('gold@workflows@temp%2Dworkflow@bragon%2Ejs');
     });
   });
 });
