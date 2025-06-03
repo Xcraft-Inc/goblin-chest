@@ -27,6 +27,9 @@ describe('goblin.chest.goldWarden', function () {
       const goldWarden = new GoldWarden(this);
       await goldWarden.init({goldPath});
 
+      const repository = await goldWarden.repository();
+      expect(repository).to.be.equals(goldPath);
+
       await setTimeoutAsync(1000);
 
       const reader = await this.cryo.reader(GoldLogic.db);
