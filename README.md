@@ -128,7 +128,8 @@ async updateGoldFile(goldId, data) {
   const gold = await new Gold(this).create(goldId, feedId);
 
   // Met à jour le contenu Gold (crée un nouvel alias si le contenu a changé)
-  await gold.update(data);
+  const success = await gold.update(data);
+  return success;
 }
 ```
 
@@ -359,13 +360,13 @@ class GoldShape {
 
 #### Méthodes publiques
 
-**`create(id, desktopId)`** - Crée un nouvel acteur Gold.
+**`create(id, desktopId)`** - Crée un nouvel acteur Gold. L'ID doit correspondre à un chemin de fichier valide.
 
 **`retrieve()`** - Récupère l'emplacement du fichier associé. Gère automatiquement le fallback sur le partage en lecture seule si le GoldWarden est désactivé.
 
 **`provide(filePath)`** - Met à jour le fichier associé depuis un chemin sur disque. Optimise en vérifiant si le fichier a changé avant de créer une nouvelle version.
 
-**`update(data)`** - Met à jour le fichier avec des données brutes (Buffer/String). Supporte l'écriture directe dans le dépôt Git si le GoldWarden est actif.
+**`update(data)`** - Met à jour le fichier avec des données brutes (Buffer/String). Supporte l'écriture directe dans le dépôt Git si le GoldWarden est actif. Retourne `false` si le Gold est vide.
 
 **`trash()`** - Met le Gold et son alias associé à la corbeille.
 
@@ -498,6 +499,17 @@ Le module inclut des tests unitaires pour valider le comportement des acteurs Ch
 - **Chiffrement** : Validation des combinaisons cipher/key pour l'encryption
 
 Les tests utilisent `Elf.trial()` pour tester la logique sans persistance, permettant de valider le comportement des mutations d'état.
+
+### `test/goldWarden.spec.js`
+
+Tests d'intégration pour le GoldWarden qui valident :
+
+- **Surveillance des fichiers** : Détection automatique des ajouts, modifications et suppressions
+- **Gestion des namespaces** : Filtrage correct selon la configuration
+- **Synchronisation** : Création et suppression automatique des acteurs Gold
+- **Performance** : Tests avec timeouts adaptés selon l'environnement
+
+Ces tests utilisent un répertoire de test temporaire et valident le comportement en temps réel du système de surveillance.
 
 _Cette documentation a été mise à jour automatiquement à partir du code source._
 
