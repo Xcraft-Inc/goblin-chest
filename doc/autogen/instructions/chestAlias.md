@@ -19,7 +19,7 @@
 Le README généré doit être en **Markdown** et suivre cette structure :
 
 ```markdown
-# GoldWarden
+# ChestAlias
 
 ## Aperçu
 
