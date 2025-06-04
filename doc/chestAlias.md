@@ -38,7 +38,7 @@ Le cycle de vie d'un ChestAlias suit le pattern standard des acteurs Elf persist
 
 **Phase de suppression logique** : La méthode `trash` marque l'alias comme supprimé sans le retirer physiquement de la base de données. Cette approche préserve la traçabilité historique et permet une récupération potentielle lors d'opérations de maintenance.
 
-**Phase de nettoyage automatique** : La méthode `delete` est définie mais vide, suivant le pattern Elf où la suppression physique est gérée automatiquement par le framework lors des opérations de collecte des orphelins.
+**Phase de nettoyage automatique** : La suppression physique est gérée automatiquement par le framework lors des opérations de collecte des orphelins.
 
 ### Gestion des statuts
 
