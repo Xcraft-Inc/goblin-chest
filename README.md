@@ -358,7 +358,6 @@ class GoldWardenShape {
 #### Méthodes publiques
 
 - **`init(options)`** — Initialise la surveillance du système de fichiers (en mode développement ou avec un dépôt Git distant).
-
 - **`dispose()`** — Nettoie les ressources (arrête la surveillance).
 - **`repository()`** — Retourne le chemin du dépôt surveillé ou null si désactivé.
 - **`setGoldPath(goldPath)`** — Configure le chemin du dépôt à surveiller et redémarre la surveillance.
