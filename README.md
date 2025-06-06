@@ -217,35 +217,20 @@ L'état du coffre est minimal car il s'agit principalement d'un orchestrateur.
 #### Méthodes publiques
 
 - **`init(options)`** — Initialise le coffre avec les options spécifiées. Configure le backend, détermine si on est côté client ou serveur, et configure les tâches de synchronisation.
-
 - **`supply(xcraftStream, fileName, streamId, chestObjectId, cert, namespace, alias)`** — Stocke un fichier dans le coffre. Retourne l'ID du ChestObject ou du ChestAlias si un namespace est spécifié. Gère automatiquement le chiffrement si un certificat est fourni.
-
 - **`retrieve(chestObjectId, key)`** — Récupère un fichier du coffre sous forme de stream Xcraft. Gère automatiquement le déchiffrement si une clé privée est fournie.
-
 - **`location(chestObjectId)`** — Obtient l'emplacement physique d'un fichier sur le système de fichiers local.
-
 - **`locationTry(chestObjectId)`** — Tente d'obtenir l'emplacement avec synchronisation automatique depuis le serveur si le fichier n'est pas disponible localement.
-
 - **`saveAsTry(chestObjectId, outputFile, privateKey)`** — Sauvegarde un fichier vers le système de fichiers avec déchiffrement automatique si nécessaire.
-
 - **`exists(chestObjectId, filePath)`** — Vérifie si un fichier existe en comparant son hash avec celui du ChestObject.
-
 - **`trash(chestObjectId)`** — Met un fichier à la corbeille et supprime le fichier physique du backend.
-
 - **`unlink(chestObjectId)`** — Dissocie un fichier (garde l'entrée DB, supprime le fichier physique).
-
 - **`trashAlias(chestAliasId)`** — Met un alias à la corbeille.
-
 - **`setVectors(chestObjectId, vectors)`** — Définit des vecteurs pour la recherche vectorielle sur un objet.
-
 - **`setReplica(enable)`** — Active/désactive le mode réplica avec gestion automatique des tâches CRON.
-
 - **`checkMissing(chestObjectId)`** — Vérifie et demande la récupération de fichiers manquants via événement réseau.
-
 - **`getObjectIdFromName(name)`** — Récupère l'ID de la dernière version d'un fichier par nom.
-
 - **`getObjectIdHistoryFromName(name, limit=10)`** — Récupère l'historique des versions d'un fichier (10 versions par défaut).
-
 - **`getAliasIdsFromNamespace(namespace, depth=1)`** — Liste les alias dans un namespace avec support de l'historique des versions.
 
 ### `chestObject.js`
@@ -309,17 +294,11 @@ class MetadataShape {
 #### Méthodes publiques
 
 - **`create(id, desktopId, filePath)`** — Crée un nouvel objet dans le coffre (nom de fichier obligatoire).
-
 - **`upsert(size, mime, charset, cipher, compress, key)`** — Met à jour les informations du fichier avec incrémentation automatique de génération. Persiste automatiquement l'objet.
-
 - **`setMetadata(metadata)`** — Définit des métadonnées documentaires optionnelles (titre, auteurs, etc.).
-
 - **`setAlias(namespace, name)`** — Crée un alias pour l'objet dans un namespace spécifique. Retourne l'ID du ChestAlias créé.
-
 - **`setVectors(vectors)`** — Définit des vecteurs pour la recherche vectorielle.
-
 - **`unlink()`** — Dissocie l'objet (garde l'entrée DB, marque comme 'unlinked').
-
 - **`trash()`** — Met l'objet à la corbeille et supprime automatiquement tous les alias associés.
 
 ### `chestAlias.js`
@@ -339,9 +318,7 @@ class ChestAliasShape {
 #### Méthodes publiques
 
 - **`create(id, desktopId, name)`** — Crée un nouvel alias (nom obligatoire).
-
 - **`upsert(name)`** — Met à jour l'alias avec un nouveau nom et marque comme 'published'.
-
 - **`trash()`** — Met l'alias à la corbeille.
 
 ### `gold.js`
@@ -361,13 +338,9 @@ class GoldShape {
 #### Méthodes publiques
 
 - **`create(id, desktopId)`** — Crée un nouvel acteur Gold. L'ID doit correspondre à un chemin de fichier valide.
-
 - **`retrieve()`** — Récupère l'emplacement du fichier associé. Gère automatiquement le fallback sur le partage en lecture seule si le GoldWarden est désactivé.
-
 - **`provide(filePath)`** — Met à jour le fichier associé depuis un chemin sur disque. Optimise en vérifiant si le fichier a changé avant de créer une nouvelle version.
-
 - **`update(data)`** — Met à jour le fichier avec des données brutes (Buffer/String). Supporte l'écriture directe dans le dépôt Git si le GoldWarden est actif. Retourne `false` si le Gold est vide.
-
 - **`trash()`** — Met le Gold et son alias associé à la corbeille.
 
 ### `goldWarden.js`
@@ -387,11 +360,8 @@ class GoldWardenShape {
 - **`init(options)`** — Initialise la surveillance du système de fichiers (en mode développement ou avec un dépôt Git distant).
 
 - **`dispose()`** — Nettoie les ressources (arrête la surveillance).
-
 - **`repository()`** — Retourne le chemin du dépôt surveillé ou null si désactivé.
-
 - **`setGoldPath(goldPath)`** — Configure le chemin du dépôt à surveiller et redémarre la surveillance.
-
 - **`setGitRemote(gitRemote)`** — Configure le dépôt Git distant et redémarre la surveillance.
 
 #### Fonctionnement
@@ -414,15 +384,10 @@ La classe `GoldFs` fournit une interface similaire au système de fichiers pour 
 #### Méthodes principales
 
 - **`readdir(location)`** — Liste les fichiers et dossiers dans un répertoire Gold virtuel. Retourne un tableau de noms.
-
 - **`readdirent(location)`** — Liste les fichiers et dossiers avec des objets Dirent pour distinguer fichiers et répertoires.
-
 - **`readFile(location, options)`** — Lit le contenu d'un fichier Gold avec les mêmes options que fs.readFile.
-
 - **`readJSON(location, options)`** — Lit et parse un fichier JSON Gold.
-
 - **`exists(location)`** — Vérifie si un fichier Gold existe dans la base de données.
-
 - **`resolve(location)`** — Résout l'emplacement physique d'un fichier Gold sur le système de fichiers.
 
 Cette classe permet d'utiliser les fichiers Gold comme s'ils étaient des fichiers système normaux, en masquant la complexité du système de stockage sous-jacent.
@@ -442,23 +407,14 @@ Le backend par défaut implémente un système de fichiers sécurisé avec hash 
 #### Méthodes principales
 
 - **`put(streamFS, cert)`** — Stocke un fichier avec chiffrement optionnel. Retourne le hash, la taille et les informations de chiffrement.
-
 - **`get(hash, encryption, key)`** — Récupère un fichier avec déchiffrement optionnel. Retourne un stream de lecture.
-
 - **`exists(hash)`** — Vérifie l'existence d'un fichier dans le stockage.
-
 - **`del(hash)`** — Supprime un fichier et met à jour l'index en mémoire.
-
 - **`location(hash)`** — Calcule l'emplacement physique d'un fichier basé sur son hash.
-
 - **`setMaxSize(maxSize)`** — Configure la limite de taille avec rotation automatique des anciens fichiers.
-
 - **`hash(file)`** — Calcule le hash SHA-256 d'un fichier.
-
 - **`getWriteStream()`** — Crée un stream d'écriture temporaire avec nom unique.
-
 - **`onError(streamFS)`** — Nettoie les fichiers temporaires en cas d'erreur.
-
 - **`list()`** — Itère sur tous les hash stockés dans l'index.
 
 ### `git/git.js`
@@ -468,21 +424,13 @@ Le module inclut une classe `Git` pour gérer les dépôts Git du GoldWarden.
 #### Méthodes principales
 
 - **`checkout(branch)`** — Change de branche dans le dépôt.
-
 - **`clone(url, branch='master')`** — Clone un dépôt distant avec une branche spécifique.
-
 - **`add(...files)`** — Ajoute des fichiers au staging.
-
 - **`rm(...files)`** — Supprime des fichiers du staging et du système de fichiers.
-
 - **`commit()`** — Valide les modifications avec un message automatique.
-
 - **`pull()`** — Récupère les modifications depuis le dépôt distant.
-
 - **`push()`** — Pousse les modifications vers le dépôt distant.
-
 - **`reset()`** — Remet le dépôt dans un état propre.
-
 - **`staged()`** — Vérifie s'il y a des modifications en staging.
 
 Cette classe permet au GoldWarden de synchroniser automatiquement les fichiers avec un dépôt Git distant, gérant le staging, les commits et la synchronisation bidirectionnelle.
