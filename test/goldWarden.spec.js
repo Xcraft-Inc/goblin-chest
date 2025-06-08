@@ -62,7 +62,7 @@ describe('goblin.chest.goldWarden', function () {
       expect(golds).includes('gold@workflows@temp%2Dworkflow@bragon%2Ejs');
 
       /* Remove files */
-      fse.removeSync(testWorkflow);
+      await fse.remove(testWorkflow);
 
       await setTimeoutAsync(5000);
 
