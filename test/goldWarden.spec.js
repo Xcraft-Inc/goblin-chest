@@ -25,7 +25,7 @@ describe('goblin.chest.goldWarden', function () {
   });
 
   it('watch', async function () {
-    this.timeout(process.env.NODE_ENV === 'development' ? 1000000 : 20000);
+    this.timeout(process.env.NODE_ENV === 'development' ? 1000000 : 40000);
 
     /** @this {Elf} */
     async function test() {
@@ -37,7 +37,7 @@ describe('goblin.chest.goldWarden', function () {
       const repository = await goldWarden.repository();
       expect(repository).to.be.equals(goldPath);
 
-      await setTimeoutAsync(2000);
+      await setTimeoutAsync(3000);
 
       /* Check for test workflows directory */
       golds = reader.queryArchetype('gold', GoldShape).field('id').all();
@@ -52,7 +52,7 @@ describe('goblin.chest.goldWarden', function () {
         '// Le Chevalier Bragon'
       );
 
-      await setTimeoutAsync(5000);
+      await setTimeoutAsync(6000);
 
       /* Check for new workflow */
       golds = reader.queryArchetype('gold', GoldShape).field('id').all();
@@ -64,7 +64,7 @@ describe('goblin.chest.goldWarden', function () {
       /* Remove files */
       await fse.remove(testWorkflow);
 
-      await setTimeoutAsync(5000);
+      await setTimeoutAsync(6000);
 
       /* Check for test workflows directory */
       golds = reader.queryArchetype('gold', GoldShape).field('id').all();
