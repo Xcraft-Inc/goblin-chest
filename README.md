@@ -386,6 +386,7 @@ La classe `GoldFs` fournit une interface similaire au système de fichiers pour 
 - **`readdirent(location)`** — Liste les fichiers et dossiers avec des objets Dirent pour distinguer fichiers et répertoires.
 - **`readFile(location, options)`** — Lit le contenu d'un fichier Gold avec les mêmes options que fs.readFile.
 - **`readJSON(location, options)`** — Lit et parse un fichier JSON Gold.
+- **`writeJSON(location, object, options)`** — Écrit un objet JavaScript au format JSON dans un fichier Gold avec options de formatage.
 - **`exists(location)`** — Vérifie si un fichier Gold existe dans la base de données.
 - **`resolve(location)`** — Résout l'emplacement physique d'un fichier Gold sur le système de fichiers.
 
@@ -422,6 +423,7 @@ Le module inclut une classe `Git` pour gérer les dépôts Git du GoldWarden.
 
 #### Méthodes principales
 
+- **`remoteUrl()`** — Récupère l'URL du dépôt distant configuré.
 - **`checkout(branch)`** — Change de branche dans le dépôt.
 - **`clone(url, branch='master')`** — Clone un dépôt distant avec une branche spécifique.
 - **`add(...files)`** — Ajoute des fichiers au staging.
@@ -429,7 +431,7 @@ Le module inclut une classe `Git` pour gérer les dépôts Git du GoldWarden.
 - **`commit()`** — Valide les modifications avec un message automatique.
 - **`pull()`** — Récupère les modifications depuis le dépôt distant.
 - **`push()`** — Pousse les modifications vers le dépôt distant.
-- **`reset()`** — Remet le dépôt dans un état propre.
+- **`reset(branch)`** — Remet le dépôt dans un état propre sur une branche spécifique.
 - **`staged()`** — Vérifie s'il y a des modifications en staging.
 
 Cette classe permet au GoldWarden de synchroniser automatiquement les fichiers avec un dépôt Git distant, gérant le staging, les commits et la synchronisation bidirectionnelle.
