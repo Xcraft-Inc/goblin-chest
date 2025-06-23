@@ -1,4 +1,4 @@
-# 📘 Documentation du module goblin-chest
+# 📘 goblin-chest
 
 ## Aperçu
 
