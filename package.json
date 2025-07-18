@@ -2,7 +2,13 @@
   "name": "goblin-chest",
   "version": "1.8.7",
   "description": "goblin-chest",
-  "author": "",
+  "author": "Epsitec SA",
+  "contributors": [
+    "Samuel Loup <loup@epsitec.ch>",
+    "Mathieu Schroeter <schroeter@epsitec.ch>",
+    "Yannick Vessaz <vessaz@epsitec.ch>",
+    "Gillian Fries <fries@epsitec.ch>"
+  ],
   "license": "MIT",
   "main": "lib/chest.js",
   "config": {
