@@ -27,7 +27,7 @@
     "which": "^5.0.0",
     "sanitize-filename": "^1.6.3",
     "xcraft-core-fs": "^2.5.1",
-    "xcraft-core-goblin": "^5.12.1",
+    "xcraft-core-goblin": "^5.53.0",
     "xcraft-core-host": "^3.11.0",
     "xcraft-core-utils": "^4.7.0"
   },
